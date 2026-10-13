@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
+import { sameOrigin } from "@/lib/request-origin";
 import { currentUser } from "@/lib/server/auth";
 import { db } from "@/lib/server/db";
 import { AcademicError, assignments, visibleTo } from "@/lib/server/academic";
@@ -9,7 +10,7 @@ const MAX=20*1024*1024;
 async function body(request:NextRequest){const reader=request.body?.getReader();if(!reader)throw new AcademicError("الطلب بدون ملف.");const chunks:Uint8Array[]=[];let size=0;while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>MAX+65536){await reader.cancel();throw new AcademicError("الحد الأقصى للملف 20 ميجابايت.",413);}chunks.push(value);}const result=new Uint8Array(size);let offset=0;for(const chunk of chunks){result.set(chunk,offset);offset+=chunk.byteLength;}return result;}
 export async function POST(request:NextRequest){try{
   const user=await currentUser();if(!user)throw new AcademicError("سجّل الدخول أولًا.",401);
-  if(request.headers.get("origin")!==`${request.nextUrl.protocol}//${request.headers.get("host")}`)throw new AcademicError("مصدر الطلب غير مسموح.",403);
+  if(!sameOrigin(request))throw new AcademicError("مصدر الطلب غير مسموح.",403);
   if(!request.headers.get("content-type")?.startsWith("multipart/form-data"))throw new AcademicError("طلب رفع الملف غير صالح.",415);
   const form=await new Response(await body(request),{headers:{"Content-Type":request.headers.get("content-type")!}}).formData();
   const purpose=form.get("purpose");const assignmentId=form.get("assignmentId");

@@ -1,3 +1,4 @@
+const { randomBytes }=require('node:crypto');
 const { spawn } = require('node:child_process');
 const { resolve, join } = require('node:path');
 const { mkdirSync, mkdtempSync } = require('node:fs');
@@ -14,9 +15,11 @@ async function run(file,args,env=process.env) {
 (async()=>{
   await run(next,['build']);
   await run(join(root,'scripts/check-course-migration.cjs'),[]);
+  await run(join(root,'scripts/check-proxy.cjs'),[]);
   const out=join(root,'test-results');mkdirSync(out,{recursive:true});
   const database=join(mkdtempSync(join(out,'product-')),'harka.sqlite');
-  const env={...process.env,HARKA_DATABASE_PATH:database,HARKA_TEST_DATABASE:database,HARKA_TEST_URL:url};
+  const setupToken=randomBytes(32).toString("hex");
+  const env={...process.env,HARKA_SETUP_TOKEN:setupToken,HARKA_TEST_SETUP_TOKEN:setupToken,HARKA_PUBLIC_ORIGIN:url,HARKA_DATABASE_PATH:database,HARKA_TEST_DATABASE:database,HARKA_TEST_URL:url};
   const server=spawn(process.execPath,[next,'start','--hostname','127.0.0.1','--port',port],{cwd:root,env,windowsHide:true,stdio:['ignore','pipe','pipe']});
   let logs='';server.stdout.on('data',d=>logs+=d);server.stderr.on('data',d=>logs+=d);
   try {

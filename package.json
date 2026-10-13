@@ -9,7 +9,9 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node scripts/run-product-tests.cjs",
     "repo:check": "node scripts/check-repository.cjs",
-    "schedule:import": "node scripts/import-third-year-schedules.cjs"
+    "schedule:import": "node scripts/import-third-year-schedules.cjs",
+    "test:container": "node scripts/check-container.cjs",
+    "db:backup": "node scripts/backup-database.cjs"
   },
   "dependencies": {
     "lucide-react": "1.56.0",

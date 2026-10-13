@@ -1,0 +1,22 @@
+# Only application inputs enter the build context. Local data and credentials
+# never enter an image layer, even when Docker is run from a working checkout.
+**
+!package.json
+!package-lock.json
+!next.config.ts
+!tsconfig.json
+!app/
+!app/**
+!components/
+!components/**
+!lib/
+!lib/**
+!public/
+!public/**
+!data/
+!data/**
+!scripts/
+!scripts/import-third-year-schedules.cjs
+!scripts/start-container.cjs
+!scripts/healthcheck.cjs
+!scripts/backup-database.cjs

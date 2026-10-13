@@ -179,7 +179,7 @@ export default function HarkaApp({ initialData, initialView, routeId, initialAtt
         {view==="exam" && initialAttempt && <StudentExam initial={initialAttempt}/>}
         {view==="settings" && <StudentSettings data={store} onSave={updateProfile}/>}
         {view==="schedule" && <StudentSchedule data={store} renderedAt={renderedAt}/>}
-        <footer className="page-footer"><span>حركة<span className="brand-dot">.</span> <span>افهمها. جرّبها. ثبّتها.</span></span><span>تجربة طلابية محلية · علوم الرياضة، أسيوط</span></footer>
+        <footer className="page-footer"><span>حركة<span className="brand-dot">.</span> <span>افهمها. جرّبها. ثبّتها.</span></span><span>مساحة تعلّم مستقلة · علوم الرياضة، أسيوط</span></footer>
       </main>
       <nav className="mobile-bottom-nav" aria-label="تنقل الموبايل">{NAV.filter(item=>["home","library","assignments","exams"].includes(item.id)).map(item => <button key={item.id} className={navActive === item.id ? "active" : ""} onClick={() => go(item.id)}><item.icon size={20} /><span>{item.title}</span></button>)}<button className={["courses","schedule","saved","progress","settings"].includes(navActive)?"active":""} onClick={()=>setMobileOpen(true)}><Menu size={20}/><span>المزيد</span></button></nav>
     </div>

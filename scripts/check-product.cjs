@@ -19,6 +19,7 @@ async function authForm(page,mode,email,name) {
   await page.locator('[name=email]').fill(email);
   await page.locator('[name=password]').fill(password);
   if(mode!=='login') await page.locator('[name=confirmPassword]').fill(password);
+  if(mode==='setup') await page.locator('[name=setupToken]').fill(process.env.HARKA_TEST_SETUP_TOKEN);
 }
 async function layout(page,path,width,name) {
   await page.setViewportSize({width,height:900}); await page.goto(`${base}${path}`); await page.evaluate(()=>document.fonts.ready);

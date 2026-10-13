@@ -1,5 +1,6 @@
-import { randomUUID } from "node:crypto";
+import { createHash, timingSafeEqual, randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
+import { sameOrigin, secureSession } from "@/lib/request-origin";
 import { catalog } from "@/lib/catalog";
 import { DEFAULT_PROFILE, coursesFor, isDemoCourse, normalizeProfile, youtubeId } from "@/lib/curriculum";
 import { homeFor } from "@/lib/domain";
@@ -29,8 +30,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
     let data: Record<string, unknown> = {};
     if (mutation) {
       // Reject cross-origin writes even when a caller manually supplies a session cookie.
-      const expectedOrigin = `${request.nextUrl.protocol}//${request.headers.get("host")}`;
-      need(request.headers.get("origin") === expectedOrigin, "مصدر الطلب غير مسموح.", 403);
+      need(sameOrigin(request), "مصدر الطلب غير مسموح.", 403);
       need(request.headers.get("content-type")?.startsWith("application/json"), "استخدم طلب JSON.", 415);
       const raw = await request.text(); need(raw.length <= 64000, "حجم الطلب أكبر من المسموح.", 413);
       try { data = JSON.parse(raw); } catch { throw new ApiError("الطلب غير صالح."); }
@@ -50,10 +50,19 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
         need(row && valid && row.active === 1, "البريد أو كلمة المرور غير صحيحة، أو الحساب موقوف.", 401);
         const user = publicUser(row as unknown as Parameters<typeof publicUser>[0]);
         db().prepare("DELETE FROM auth_attempts WHERE key=?").run(`${path}:${email}`);
-        await createSession(user.id, request.nextUrl.protocol === "https:");
+        await createSession(user.id, secureSession(request));
         return json({ redirect: homeFor(user.role) });
       }
-      if (path === "auth/setup") need(!hasAdmin(), "تم إعداد الإدارة بالفعل.", 409);
+      if (path === "auth/setup") {
+        need(!hasAdmin(), "تم إعداد الإدارة بالفعل.", 409);
+        const setupToken=process.env.HARKA_SETUP_TOKEN;
+        need(process.env.NODE_ENV!=="production" || setupToken && setupToken.length>=32,"اضبط رمز إعداد الإدارة في إعدادات الخادم أولًا.",503);
+        if(setupToken){
+          const supplied=typeof data.setupToken==="string" && data.setupToken.length<=256?data.setupToken:"";
+          const digest=(value:string)=>createHash("sha256").update(value).digest();
+          need(timingSafeEqual(digest(supplied),digest(setupToken)),"رمز إعداد الإدارة غير صحيح.",403);
+        }
+      }
       else need(hasAdmin(), "يحتاج مالك المنصة إلى إعداد حساب الإدارة أولًا.", 409);
       const name = text(data.name, 2, 50, "الاسم");
       need(data.confirmPassword === data.password, "كلمتا المرور غير متطابقتين.");
@@ -69,7 +78,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
         if(role==="student") saveChoices(id,choices);
         audit(id, role === "admin" ? "setup_admin" : "register_student", id);
       });
-      await createSession(id, request.nextUrl.protocol === "https:");
+      await createSession(id, secureSession(request));
       return json({ redirect: homeFor(role) }, { status: 201 });
     }
 
