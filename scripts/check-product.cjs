@@ -153,6 +153,7 @@ async function layout(page,path,width,name) {
     await require('./check-academic.cjs')({base,call,admin,student,second,owner,pupil,profile,courseId:lesson.courseId,layout});
     await require('./check-course.cjs')({base,call,admin,student,second,owner,pupil,layout});
     await require('./check-timetable-import.cjs')({base,call,admin,student,pupil,layout});
+    await require('./check-admin-settings.cjs')({base,call,admin,student,anon,owner,pupil,publicPage,password,layout,browser});
     await call(student,'auth/logout',{});await call(student,'student/state',undefined,'GET',401);
     const database=new DatabaseSync(process.env.HARKA_TEST_DATABASE || 'test-results/product-test.sqlite',{readOnly:true});
     for(const row of database.prepare('SELECT password_hash FROM users').all()) {assert(row.password_hash.startsWith('scrypt:'));assert(!row.password_hash.includes(password));}

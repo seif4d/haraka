@@ -1,4 +1,5 @@
 import "server-only";
+import { platformSettings } from "./platform-settings";
 import { db } from "./db";
 import type { Lesson, Schedule, StudentData, User } from "../domain";
 import { userChoices } from "./specializations";
@@ -13,9 +14,11 @@ export function listLessons(publishedOnly = false): Lesson[] {
 }
 export function studentData(user: User): StudentData {
   const specializations = userChoices(user.id);
+  const settings=platformSettings();
   const courseIds=new Set(coursesFor(user.profile).map(c=>c.id));
   const schedule = listSchedules().find(s=>s.cohortKey===cohortKey(user.profile) && s.status==="published") || null;
   return {
+    announcement: settings.announcementEnabled ? settings.announcement : "",
     learning:studentLearning(user), email:user.email, specializations, schedule:schedule ? {...schedule,entries:schedule.entries.filter(e=>(!e.sportId || specializations[e.courseId]===e.sportId) && !e.excludedSportIds?.includes(specializations[e.courseId]))} : null,
     lessonVisits:Object.fromEntries(db().prepare("SELECT course_id,lesson_id FROM lesson_visits WHERE user_id=?").all(user.id).filter(row=>courseIds.has(String(row.course_id))).map(row=>[String(row.course_id),String(row.lesson_id)])),
     profile: user.profile, dark: false, lessons: listLessons(true).filter(l=>courseIds.has(l.courseId) && (!l.sportId || specializations[l.courseId]===l.sportId)),
@@ -25,7 +28,7 @@ export function studentData(user: User): StudentData {
 }
 export function listUsers(): User[] { return db().prepare("SELECT id,email,role,profile,active,created_at FROM users ORDER BY created_at DESC").all().map(row => publicUser(row as unknown as Parameters<typeof publicUser>[0])); }
 export function adminData() {
-  return { learning:adminLearning(), schedules:listSchedules(), users: listUsers(), lessons: listLessons(), completions: Number(db().prepare("SELECT COUNT(*) AS total FROM progress").get()?.total || 0), audit: db().prepare("SELECT a.action,a.entity_id AS entityId,a.created_at AS createdAt,json_extract(u.profile,'$.name') AS name FROM audit_log a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 15").all().map(row => ({ ...row })) };
+  return { settings:platformSettings(), learning:adminLearning(), schedules:listSchedules(), users: listUsers(), lessons: listLessons(), completions: Number(db().prepare("SELECT COUNT(*) AS total FROM progress").get()?.total || 0), audit: db().prepare("SELECT a.action,a.entity_id AS entityId,a.created_at AS createdAt,json_extract(u.profile,'$.name') AS name FROM audit_log a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 15").all().map(row => ({ ...row })) };
 }
 
 export function listSchedules(): Schedule[] {

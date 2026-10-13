@@ -20,6 +20,7 @@ input,textarea,select{min-width:0}
 .harka-shell{--bg:#f5f6f0;--paper:#fff;--ink:#17231a;--muted:#697365;--line:#e4e8df;--lime:#c6f77b;--lilac:#ebe4ff;--peach:#ffe6d5;--blue:#e1edf4;--soft:#eff1eb;min-height:100vh;background:var(--bg);color:var(--ink)}
 .harka-shell.dark{color-scheme:dark;--bg:#131a15;--paper:#1c261f;--ink:#f0f4e9;--muted:#afbca9;--line:#344238;--soft:#263229;--lilac:#3f3656;--peach:#4c382c;--blue:#2c404a}
 .muted{color:var(--muted);font-size:13px;line-height:1.9}
+.platform-notice{display:flex;align-items:flex-start;gap:12px;padding:17px 20px;border-radius:16px;background:var(--lilac);color:var(--ink);margin-bottom:24px;font-size:12px;line-height:1.9;white-space:pre-wrap;overflow-wrap:anywhere}.platform-notice svg{margin-top:3px}.public-site .platform-notice{margin-top:24px}
 .small{font-size:11px}
 .eyebrow{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);margin-bottom:7px;font-weight:500}
 .live-dot,.solid-dot{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;flex-shrink:0}

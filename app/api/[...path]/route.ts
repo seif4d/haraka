@@ -13,6 +13,8 @@ import { lessonDetails } from "@/lib/server/lesson-details";
 import { sportsFor } from "@/lib/specializations";
 import { academicRequest } from "@/lib/server/academic-http";
 import { AcademicError } from "@/lib/server/academic";
+import { platformSettings, savePlatformSettings } from "@/lib/server/platform-settings";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -63,7 +65,10 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
           need(timingSafeEqual(digest(supplied),digest(setupToken)),"رمز إعداد الإدارة غير صحيح.",403);
         }
       }
-      else need(hasAdmin(), "يحتاج مالك المنصة إلى إعداد حساب الإدارة أولًا.", 409);
+      else {
+        need(hasAdmin(), "يحتاج مالك المنصة إلى إعداد حساب الإدارة أولًا.", 409);
+        need(platformSettings().registrationOpen, "تسجيل الحسابات الجديدة متوقف حاليًا. تقدر تدخل بحسابك الحالي.", 403);
+      }
       const name = text(data.name, 2, 50, "الاسم");
       need(data.confirmPassword === data.password, "كلمتا المرور غير متطابقتين.");
       const profile = normalizeProfile({ ...DEFAULT_PROFILE, ...(data.profile && typeof data.profile === "object" ? data.profile : {}), name });
@@ -73,6 +78,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       const id = randomUUID(); const role = path === "auth/setup" ? "admin" : "student";
       transaction(() => {
         if (role === "admin") need(!hasAdmin(), "تم إعداد الإدارة بالفعل.", 409);
+        else need(platformSettings().registrationOpen, "تسجيل الحسابات الجديدة متوقف حاليًا.", 403);
         need(!db().prepare("SELECT 1 FROM users WHERE email=?").get(email), "يوجد حساب بهذا البريد. جرّب تسجيل الدخول.", 409);
         db().prepare("INSERT INTO users(id,email,password_hash,role,profile,created_at) VALUES(?,?,?,?,?,?)").run(id, email, encoded, role, JSON.stringify(profile), new Date().toISOString());
         if(role==="student") saveChoices(id,choices);
@@ -85,6 +91,41 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
     const user = await currentUser(); need(user, "سجّل الدخول للمتابعة.", 401);
     if (path.startsWith("admin/")) need(user.role === "admin", "هذه المساحة متاحة للإدارة فقط.", 403);
     else need(user.role === "student", "هذا الإجراء خاص بحساب الطالب.", 403);
+    if (path === "admin/settings" && request.method === "GET") return json(platformSettings());
+    if (path === "admin/settings" && request.method === "PATCH") {
+      let settings;
+      try { settings = savePlatformSettings(data, user.id); } catch(error) { throw new ApiError((error as Error).message); }
+      revalidatePath("/", "layout");
+      return json(settings);
+    }
+    if (path === "admin/account" && request.method === "PATCH") {
+      const name = text(data.name, 2, 50, "الاسم");
+      transaction(() => {
+        db().prepare("UPDATE users SET profile=? WHERE id=?").run(JSON.stringify({...user.profile,name}), user.id);
+        audit(user.id, "update_admin_account", user.id);
+      });
+      return json({name});
+    }
+    if (path === "admin/password" && request.method === "POST") {
+      need(typeof data.currentPassword === "string" && data.currentPassword.length > 0 && data.currentPassword.length <= 128, "اكتب كلمة المرور الحالية.");
+      need(typeof data.newPassword === "string" && data.newPassword.length >= 10 && data.newPassword.length <= 128, "كلمة المرور الجديدة تحتاج 10 أحرف على الأقل.");
+      need(data.newPassword === data.confirmPassword, "كلمتا المرور غير متطابقتين.");
+      need(data.newPassword !== data.currentPassword, "اختار كلمة مرور مختلفة عن الحالية.");
+      need(authLimit(`admin/password:${user.id}`), "محاولات كثيرة. حاول بعد 15 دقيقة.", 429);
+      const previous = String(db().prepare("SELECT password_hash FROM users WHERE id=?").get(user.id)?.password_hash);
+      need(await verifyPassword(data.currentPassword, previous), "كلمة المرور الحالية غير صحيحة.", 401);
+      const encoded = await passwordHash(data.newPassword);
+      transaction(() => {
+        // Reject a competing change rather than overwrite a newer password.
+        need(db().prepare("SELECT password_hash FROM users WHERE id=?").get(user.id)?.password_hash === previous, "اتغيّرت كلمة المرور. سجّل الدخول من جديد.", 409);
+        db().prepare("UPDATE users SET password_hash=? WHERE id=?").run(encoded,user.id);
+        db().prepare("DELETE FROM sessions WHERE user_id=?").run(user.id);
+        db().prepare("DELETE FROM auth_attempts WHERE key=?").run(`admin/password:${user.id}`);
+        audit(user.id, "change_admin_password", user.id);
+      });
+      await createSession(user.id, secureSession(request));
+      return json({changed:true});
+    }
     const academicResponse=academicRequest(path,request.method,data,user);if(academicResponse)return academicResponse;
     if (path === "student/state" && request.method === "GET") return json(studentData(user));
     if (path === "student/profile" && request.method === "PATCH") {

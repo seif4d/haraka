@@ -96,7 +96,9 @@ export function db() {
   database.exec(`CREATE TABLE IF NOT EXISTS lesson_visits (
     user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, course_id TEXT NOT NULL,
     lesson_id TEXT NOT NULL, visited_at TEXT NOT NULL, PRIMARY KEY(user_id,course_id)
-  ); PRAGMA user_version=5;`);
+  );
+  CREATE TABLE IF NOT EXISTS platform_settings (id INTEGER PRIMARY KEY CHECK(id=1), value TEXT NOT NULL);
+  PRAGMA user_version=6;`);
   globalDb.harkaDb = database;
   return database;
 }
