@@ -31,6 +31,7 @@ module.exports = async ({base,call,admin,student,anon,owner,pupil,publicPage,pas
   await publicPage.goto(base);assert.equal(await publicPage.title(),saved.pageTitle);
   await publicPage.locator('.landing-intro').filter({hasText:saved.description}).waitFor();
   assert.equal(await publicPage.locator('meta[name="description"]').getAttribute('content'),saved.description);
+  assert.equal(await publicPage.locator('meta[property="og:title"]').getAttribute('content'),saved.pageTitle);assert.equal(await publicPage.locator('meta[name="twitter:title"]').getAttribute('content'),saved.pageTitle);assert.equal(await publicPage.locator('meta[property="og:image"]').getAttribute('content'),base+'/brand/harka-share-v1.png');
   assert.equal(await publicPage.getByRole('link',{name:'تواصل معانا',exact:true}).getAttribute('href'),'mailto:help@example.test');
   assert.equal(await publicPage.locator('a[href="/register"]').count(),0);
   await publicPage.locator('.platform-notice').getByText(announcement,{exact:true}).waitFor();

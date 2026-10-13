@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { socialMetadata } from "@/lib/social-metadata";
 
 const alexandria = localFont({
   src: [
@@ -14,10 +15,10 @@ const alexandria = localFont({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "حركة — افهمها. جرّبها. ثبّتها.",
-  description: "مساحة تعليمية لطلاب علوم الرياضة بجامعة أسيوط. المواد، الدروس التفاعلية، وبطاقات المراجعة.",
-};
+export const metadata: Metadata = socialMetadata(
+  "حركة — افهمها. جرّبها. ثبّتها.",
+  "مساحة تعليمية لطلاب علوم الرياضة بجامعة أسيوط. المواد، الدروس التفاعلية، وبطاقات المراجعة.",
+);
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="ar" dir="rtl" className={alexandria.variable}><body>{children}</body></html>;

@@ -35,6 +35,7 @@ async function layout(page,path,width,name) {
     const anon=await browser.newContext(); const admin=await browser.newContext(); const student=await browser.newContext(); const second=await browser.newContext();
     const owner=await admin.newPage(); const pupil=await student.newPage(); const publicPage=await anon.newPage();
     for(const page of [owner,pupil,publicPage]) {page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=500) errors.push(`${r.status()} ${r.url()}`);});}
+    await require('./check-share-metadata.cjs')({base,context:anon,page:publicPage});
     await publicPage.goto(`${base}/student`);assert.equal(new URL(publicPage.url()).pathname,'/login');
     await call(anon,'admin/state',undefined,'GET',401);
     await call(anon,'auth/register',{email:'early@example.test',password,confirmPassword:password,name:'طالب مبكر',profile},'POST',409);
