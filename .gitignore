@@ -1,0 +1,38 @@
+# Dependencies and generated builds
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Local accounts, content, uploads, backups and test fixtures
+.data/
+test-results/
+playwright-report/
+blob-report/
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.backup
+*.bak
+
+# Environment files and private credentials
+.env*
+!.env.example
+*.pem
+*.key
+.npmrc.local
+
+# Local logs and editor/OS files
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+.vercel/

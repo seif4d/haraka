@@ -1,0 +1,10 @@
+"use client";
+import { useState } from "react";
+import { Download, FileText, Upload, X } from "lucide-react";
+import { fileSize } from "@/lib/academic-domain";
+import type { Attachment } from "@/lib/academic-domain";
+export function AttachmentLink({file,label="تحميل الملف"}:{file:Attachment;label?:string}){return <a className="button outline-button" href={`/api/files/${file.id}`} target="_blank" rel="noreferrer"><Download size={15}/>{label}</a>;}
+export default function FilePicker({value,onChange,purpose="material",assignmentId,onBusyChange}:{value:Attachment|null;onChange:(file:Attachment|null)=>void;purpose?:"material"|"submission";assignmentId?:string;onBusyChange?:(busy:boolean)=>void}){
+  const [busy,setBusy]=useState(false);const [error,setError]=useState("");
+  return <div className="file-picker"><label className="upload-target"><Upload size={20}/><span>{busy ? "جاري رفع الملف…" : value ? "اختار ملفًا بدل الحالي" : "اختار ملفًا من جهازك"}</span><input aria-label="رفع ملف" type="file" accept=".pdf,.docx,.png,.jpg,.jpeg" disabled={busy} onChange={async e=>{const input=e.currentTarget;const file=input.files?.[0];if(!file)return;setError("");if(file.size>20*1024*1024){setError("الحد الأقصى 20 ميجابايت.");input.value="";return;}setBusy(true);onBusyChange?.(true);try{const form=new FormData();form.set("file",file);form.set("purpose",purpose);if(assignmentId)form.set("assignmentId",assignmentId);const response=await fetch("/api/files",{method:"POST",body:form});const result=await response.json();if(!response.ok)throw new Error(result.error);onChange(result.file);}catch(err){setError(err instanceof Error?err.message:"تعذر رفع الملف.");}finally{setBusy(false);onBusyChange?.(false);input.value="";}}}/><small>PDF · DOCX · PNG · JPG — حتى 20 ميجابايت</small></label>{value && <div className="selected-file"><FileText size={18}/><div><strong>{value.name}</strong><small>{fileSize(value.size)}</small></div><button type="button" className="icon-button" aria-label="إزالة الملف المختار" disabled={busy} onClick={()=>onChange(null)}><X size={17}/></button></div>}{error && <p className="form-error" role="alert">{error}</p>}</div>;
+}
