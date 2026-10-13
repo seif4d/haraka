@@ -1,4 +1,4 @@
-const {mkdirSync,accessSync,constants}=require('node:fs');
+const {mkdirSync,accessSync,readFileSync,realpathSync,constants}=require('node:fs');
 const {resolve,dirname}=require('node:path');
 function validateRuntime(env=process.env) {
   if(!env.HARKA_PUBLIC_ORIGIN)throw new Error('Set HARKA_PUBLIC_ORIGIN to your public HTTPS origin.');
@@ -8,8 +8,20 @@ function validateRuntime(env=process.env) {
   if(!env.HARKA_DATABASE_PATH || !require('node:path').isAbsolute(env.HARKA_DATABASE_PATH))throw new Error('Set HARKA_DATABASE_PATH to an absolute path inside persistent storage.');
   return {origin:origin.origin,dataDirectory:dirname(resolve(env.HARKA_DATABASE_PATH))};
 }
-module.exports={validateRuntime};
+function validatePersistentStorage(directory,mountInfo) {
+  const path=require('node:path').posix;
+  const target=path.normalize(directory);
+  const mounted=mountInfo.split('\n').some(line=>{
+    const [fields,details]=line.split(' - ');
+    if(!details)return false;
+    const mount=fields.split(' ')[4]?.replace(/\\([0-7]{3})/g,(_,octal)=>String.fromCharCode(parseInt(octal,8)));
+    const type=details.split(' ')[0];
+    return mount && mount!=='/' && !['tmpfs','ramfs','overlay','squashfs','proc','sysfs','devtmpfs'].includes(type) && (target===mount || target.startsWith(mount+'/'));
+  });
+  if(!mounted)throw new Error(`No persistent storage mounted for database directory ${directory}. Configure Coolify Persistent Storage before deploying.`);
+}
+module.exports={validateRuntime,validatePersistentStorage};
 if(require.main===module){
-  try {const runtime=validateRuntime();mkdirSync(runtime.dataDirectory,{recursive:true});accessSync(runtime.dataDirectory,constants.R_OK|constants.W_OK);process.env.HOSTNAME='0.0.0.0';require('../server.js');}
+  try {const runtime=validateRuntime();mkdirSync(runtime.dataDirectory,{recursive:true});validatePersistentStorage(realpathSync(runtime.dataDirectory),readFileSync('/proc/self/mountinfo','utf8'));accessSync(runtime.dataDirectory,constants.R_OK|constants.W_OK);process.env.HOSTNAME='0.0.0.0';require('../server.js');}
   catch(error){console.error(`Container configuration: ${error.message}`);process.exitCode=1;}
 }
