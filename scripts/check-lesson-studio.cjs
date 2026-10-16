@@ -38,7 +38,7 @@ module.exports=async({base,call,admin,student,owner,pupil,layout,imported})=>{
   await sort.getByRole('button',{name:'جرّب التحدّي تاني',exact:true}).click();await sort.getByText('الموقف 01',{exact:true}).waitFor();
   const reading=pupil.locator('[data-studio=reading]');const summary=reading.locator('summary').first();assert.equal(await reading.locator('details').first().getAttribute('open'),null);await summary.click();assert(await reading.locator('details').first().getAttribute('open')!==null);
   assert.equal(await pupil.getByRole('navigation',{name:'رحلة الدرس',exact:true}).getByRole('link').count(),4);
-  for(const width of [320,390,768,1440])await layout(pupil,`/student/lessons/${id}`,width,'studio-first');
+  for(const width of [320,390,768,1440]){await layout(pupil,`/student/lessons/${id}`,width,'studio-first');const trail=pupil.getByRole('navigation',{name:'رحلة الدرس',exact:true});await trail.getByRole('link',{name:/طبّق الفكرة/}).click();assert(await trail.evaluate(e=>e.getBoundingClientRect().bottom<0),'Journey navigation must scroll away from the lesson');assert(await pupil.locator('[data-studio=sort]').getByRole('heading').first().isVisible());}
   for(const position of [3,5,6,7,8,9,10]){
     const current=`sport-training-u01-l${String(position).padStart(2,'0')}-boys`;
     for(const width of [320,1440])await layout(pupil,`/student/lessons/${current}`,width,`studio-lesson-${position}`);

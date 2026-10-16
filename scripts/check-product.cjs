@@ -142,6 +142,12 @@ async function layout(page,path,width,name) {
     await call(student,'admin/state',undefined,'GET',403);
     const csrf=await student.request.post(`${base}/api/student/bookmarks`,{headers:{Origin:'https://evil.example','Content-Type':'application/json'},data:{courseId:lesson.courseId,saved:true}});assert.equal(csrf.status(),403);
     for(const width of [320,390,768,1440]) {await layout(pupil,'/student/courses',width,'student');await layout(owner,'/admin/content',width,'admin');await layout(owner,'/admin/users',width);}
+    await pupil.setViewportSize({width:390,height:900});
+    const mobileNav=pupil.getByRole('navigation',{name:'تنقل الموبايل',exact:true});
+    assert.deepEqual(await mobileNav.locator('button').allTextContents(),['الرئيسية','موادي','محاضراتي','تكليفات','المزيد']);
+    for(const [label,path] of [['الرئيسية','/student'],['موادي','/student/courses'],['محاضراتي','/student/schedule'],['تكليفات','/student/assignments']]){await mobileNav.getByRole('button',{name:label,exact:true}).click();await pupil.waitForURL(base+path);await mobileNav.locator('button[aria-current=page]').filter({hasText:label}).waitFor();}
+    await mobileNav.getByRole('button',{name:'المزيد',exact:true}).click();assert.equal(await mobileNav.getByRole('button',{name:'المزيد',exact:true}).getAttribute('aria-expanded'),'true');
+    const mobileMenu=pupil.getByRole('navigation',{name:'القائمة الرئيسية',exact:true});assert(await mobileMenu.getByRole('button',{name:'المكتبة',exact:true}).isVisible());assert(await mobileMenu.getByRole('button',{name:'الاختبارات',exact:true}).isVisible());await mobileMenu.getByRole('button',{name:'الاختبارات',exact:true}).click();await pupil.waitForURL(base+'/student/exams');await mobileNav.locator('button.active').filter({hasText:'المزيد'}).waitFor();await pupil.screenshot({path:'test-results/mobile-bottom-navigation-390.png',animations:'disabled'});
     await layout(owner,'/admin',1440,'admin-overview');await layout(owner,'/admin/settings',390,'roles');
     const sid=(await call(admin,'admin/state',undefined,'GET')).users.find(x=>x.email==='student@example.test').id;
     await call(admin,'admin/users',{id:sid,active:false},'PATCH');await call(student,'student/state',undefined,'GET',401);

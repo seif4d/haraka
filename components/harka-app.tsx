@@ -34,6 +34,12 @@ const NAV = [
   { id: "settings" as View, title: "الإعدادات", icon: Settings2 },
 ];
 const KIND = { academic: "نظري", practical: "نظري وتطبيقي", elective: "تخصص اختياري", field: "تطبيق ميداني" };
+const MOBILE_NAV = [
+  {id:"home",title:"الرئيسية",icon:Home},
+  {id:"courses",title:"موادي",icon:BookOpen},
+  {id:"schedule",title:"محاضراتي",icon:CalendarDays},
+  {id:"assignments",title:"تكليفات",icon:ListTodo},
+] as const;
 
 function arabicSearch(value: string) {
   return value.normalize("NFKD").replace(/[\u064B-\u065F\u0670]/g, "").replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").toLowerCase();
@@ -130,7 +136,7 @@ export default function HarkaApp({ initialData, initialView, routeId, initialAtt
 
   return <div className={`harka-shell student-shell${store.dark ? " dark" : ""}`}>
     {mobileOpen && <button className="sidebar-scrim" aria-label="إغلاق القائمة" onClick={() => setMobileOpen(false)} />}
-    <aside className={`sidebar${mobileOpen ? " expanded" : ""}`}>
+    <aside id="student-sidebar" className={`sidebar${mobileOpen ? " expanded" : ""}`}>
       <button className="brand" onClick={() => go("home")} aria-label="حركة، الرئيسية"><BrandLogo inverse/></button>
       <div className="sidebar-caption">مساحة علوم الرياضة</div>
       <nav className="side-nav" aria-label="القائمة الرئيسية">{NAV.map(item => <button key={item.id} className={navActive === item.id ? "active" : ""} aria-current={navActive === item.id ? "page" : undefined} onClick={() => go(item.id)}><item.icon size={20} /><span>{item.title}</span>{navActive === item.id && <span className="nav-dot" />}{item.id === "saved" && store.saved.length > 0 && <span className="nav-count">{store.saved.length}</span>}</button>)}</nav>
@@ -183,7 +189,7 @@ export default function HarkaApp({ initialData, initialView, routeId, initialAtt
         {view==="schedule" && <StudentSchedule data={store} renderedAt={renderedAt}/>}
         <footer className="page-footer"><span>حركة<span className="brand-dot">.</span> <span>افهمها. جرّبها. ثبّتها.</span></span><span>مساحة تعلّم مستقلة · علوم الرياضة، أسيوط</span></footer>
       </main>
-      <nav className="mobile-bottom-nav" aria-label="تنقل الموبايل">{NAV.filter(item=>["home","library","assignments","exams"].includes(item.id)).map(item => <button key={item.id} className={navActive === item.id ? "active" : ""} onClick={() => go(item.id)}><item.icon size={20} /><span>{item.title}</span></button>)}<button className={["courses","schedule","saved","progress","settings"].includes(navActive)?"active":""} onClick={()=>setMobileOpen(true)}><Menu size={20}/><span>المزيد</span></button></nav>
+      <nav className="mobile-bottom-nav" aria-label="تنقل الموبايل">{MOBILE_NAV.map(item => <button key={item.id} className={navActive === item.id ? "active" : ""} aria-current={navActive===item.id?"page":undefined} onClick={() => go(item.id)}><item.icon size={20} /><span>{item.title}</span></button>)}<button className={!MOBILE_NAV.some(item=>item.id===navActive)?"active":""} aria-expanded={mobileOpen} aria-controls="student-sidebar" onClick={()=>setMobileOpen(true)}><Menu size={20}/><span>المزيد</span></button></nav>
     </div>
     {notice && <div className="toast" role="status"><Check size={17} /><span>{notice}</span><button aria-label="إغلاق التنبيه" onClick={() => setNotice("")}><X size={15} /></button></div>}
 
