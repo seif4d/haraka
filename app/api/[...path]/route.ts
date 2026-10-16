@@ -14,6 +14,7 @@ import { sportsFor } from "@/lib/specializations";
 import { academicRequest } from "@/lib/server/academic-http";
 import { AcademicError } from "@/lib/server/academic";
 import { platformSettings, savePlatformSettings } from "@/lib/server/platform-settings";
+import { createCourseUnit, updateCourseUnits, attachLessonUnit, UnitError } from "@/lib/server/course-units";
 import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
@@ -168,9 +169,24 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       return json({ completed: true });
     }
     if (path === "admin/state" && request.method === "GET") return json(adminData());
+    if(path === "admin/units" && ["POST","PATCH"].includes(request.method)){
+      const courseId=text(data.courseId,1,200,"المقرر");need(catalog.some(c=>c.id===courseId),"المقرر غير موجود.");
+      try{return request.method==="POST"?json({unit:createCourseUnit(courseId,data.title,user.id)},{status:201}):json({units:updateCourseUnits(data,user.id)});}catch(error){if(error instanceof UnitError)throw new ApiError(error.message,error.status);throw error;}
+    }
     if(path === "admin/schedules" && request.method === "POST") {
       try { return json({schedule:saveSchedule(data,user.id)}); }
       catch(error) {throw new ApiError((error as Error).message);}
+    }
+    if(path === "admin/lessons/order" && request.method === "PATCH") {
+      const courseId=text(data.courseId,1,200,"المقرر");const unitId=text(data.unitId,0,100,"الوحدة");
+      need(Array.isArray(data.lessons)&&data.lessons.length>0&&data.lessons.length<=1000,"راجع قائمة الدروس.");
+      const targets=data.lessons as {id:string;updatedAt:string}[];
+      transaction(()=>{
+        const current=listLessons().filter(l=>l.courseId===courseId&&(l.unitId||'')===unitId);
+        need(current.length===targets.length&&new Set(targets.map(t=>t?.id)).size===targets.length,"أرسل كل دروس الوحدة بدون تكرار.");
+        for(const target of targets){const lesson=current.find(l=>l.id===target?.id);need(lesson,"الدرس لا يتبع الوحدة.",404);need(lesson.updatedAt===target.updatedAt,"الدروس اتعدّلت في جلسة أخرى. حدّث القائمة.",409);}
+        const now=new Date().toISOString();targets.forEach((target,i)=>db().prepare("UPDATE lessons SET structure=json_set(structure,'$.position',?),updated_at=? WHERE id=?").run(i+1,now,target.id));audit(user.id,'reorder_lessons',courseId);
+      });return json({reordered:true});
     }
     if(path === "admin/lessons/status" && request.method === "PATCH") {
       need(data.status==="draft"||data.status==="published","اختر حالة النشر.");
@@ -204,6 +220,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
         if(existing&&data.expectedUpdatedAt!==undefined){const current=db().prepare("SELECT updated_at FROM lessons WHERE id=?").get(id);need(current?.updated_at===data.expectedUpdatedAt,"الدرس اتعدّل في جلسة أخرى. احتفظ بنصك وراجع أحدث نسخة قبل الحفظ.",409);}
         if (existing) db().prepare("UPDATE lessons SET course_id=?,title=?,intro=?,body=?,youtube_url=?,status=?,updated_at=?,sport_id=? WHERE id=?").run(courseId, title, intro, body, video, data.status as string, now, sportId, id);
         else db().prepare("INSERT INTO lessons(id,course_id,title,intro,body,youtube_url,status,author_id,created_at,updated_at,sport_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)").run(id, courseId, title, intro, body, video, data.status as string, user.id, now, now,sportId);
+        try{attachLessonUnit(id,courseId,data.unitId,details,user.id);}catch(error){if(error instanceof UnitError)throw new ApiError(error.message,error.status);throw error;}
         db().prepare("UPDATE lessons SET structure=? WHERE id=?").run(JSON.stringify(details),id);
         audit(user.id, existing ? "update_lesson" : "create_lesson", id);
       });

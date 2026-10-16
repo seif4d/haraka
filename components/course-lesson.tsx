@@ -10,7 +10,7 @@ import LessonBlocks from "./lesson-blocks";
 import styles from "./course-hub.module.css";
 import studio from "./lesson-reader-studio.module.css";
 export default function CourseLesson({lesson,course,data,onComplete}:{lesson:Lesson;course:Course;data:StudentData;onComplete:()=>Promise<void>}){
-  const [busy,setBusy]=useState(false);const [playing,setPlaying]=useState(false);const video=youtubeId(lesson.youtubeUrl);const interactive=lesson.blocks.some(b=>b.type!=="text");
+  const [busy,setBusy]=useState(false);const [playing,setPlaying]=useState(false);const video=youtubeId(lesson.youtubeUrl);const interactive=lesson.blocks.some(b=>!["text","paragraph","reading"].includes(b.type));
   const steps=courseSteps(course,data);const index=steps.findIndex(s=>s.id===lesson.id);const next=steps[index+1];const previous=steps[index-1];const complete=data.completed.includes(lesson.id);const sections=lessonSections(lesson.body);const headings=sections.filter(s=>s.heading);
   const story=lesson.blocks.find(b=>b.type==="story");
   const resources=data.learning.resources.filter(r=>r.courseId===course.id);const completed=steps.filter(s=>data.completed.includes(s.id)).length;

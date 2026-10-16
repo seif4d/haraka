@@ -2,6 +2,7 @@ import "server-only";
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { syncLegacyUnits } from "./course-units";
 
 const globalDb = globalThis as unknown as { harkaDb?: DatabaseSync };
 export function db() {
@@ -98,7 +99,11 @@ export function db() {
     lesson_id TEXT NOT NULL, visited_at TEXT NOT NULL, PRIMARY KEY(user_id,course_id)
   );
   CREATE TABLE IF NOT EXISTS platform_settings (id INTEGER PRIMARY KEY CHECK(id=1), value TEXT NOT NULL);
-  PRAGMA user_version=6;`);
+  CREATE TABLE IF NOT EXISTS course_units (id TEXT PRIMARY KEY,course_id TEXT NOT NULL,title TEXT NOT NULL,position INTEGER NOT NULL,updated_at TEXT NOT NULL);
+  CREATE INDEX IF NOT EXISTS units_course ON course_units(course_id,position);`);
+  if(!database.prepare("PRAGMA table_info(lessons)").all().some(row=>row.name==="unit_id"))database.exec("ALTER TABLE lessons ADD COLUMN unit_id TEXT NOT NULL DEFAULT ''");
+  database.exec('BEGIN IMMEDIATE');
+  try{syncLegacyUnits(database);database.exec('PRAGMA user_version=7;COMMIT');}catch(error){database.exec('ROLLBACK');database.close();throw error;}
   globalDb.harkaDb = database;
   return database;
 }

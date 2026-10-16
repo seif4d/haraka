@@ -11,9 +11,9 @@ import LessonJourney from "./lesson-journey";
 
 export default function LessonBlocks({blocks,preview=false}:{blocks:LessonBlock[];preview?:boolean}) {
   const instance=useId().replace(/:/g,"");
-  return <div className={styles.journey}>{blocks[0]?.type==="story" && !preview && <LessonJourney blocks={blocks}/>}{blocks.map((block,index)=><section key={block.id} id={`${preview ? `preview-${instance}` : "block"}-${block.id}`} data-lesson-block={block.type} className={`${styles.block} ${block.type==="simulation"?styles.lab:""}`}>
-    <div className={styles.kicker}><span>{String(index+1).padStart(2,"0")} / {BLOCK_LABELS[block.type]}</span>{block.type!=="text" && <span><Sparkles size={13}/>دورك تشارك</span>}</div>
-    <h2>{block.title}</h2>{block.body && <div className={styles.body}><LessonCopy text={block.body}/></div>}
+  return <div className={styles.journey}>{blocks[0]?.type==="story" && !preview && <LessonJourney blocks={blocks}/>}{blocks.map((block,index)=><section key={block.id} id={`${preview ? `preview-${instance}` : "block"}-${block.id}`} data-lesson-block={block.type} className={`${block.type==="paragraph"?styles.paragraph:styles.block} ${block.type==="simulation"?styles.lab:""}`}>
+    {block.type!=="paragraph"&&<><div className={styles.kicker}><span>{String(index+1).padStart(2,"0")} / {BLOCK_LABELS[block.type]}</span>{block.type!=="text" && <span><Sparkles size={13}/>دورك تشارك</span>}</div>
+    <h2>{block.title}</h2></>}{block.body && <div className={styles.body}><LessonCopy text={block.body}/></div>}
     {block.type==="explore" && <Explore block={block}/>}
     {block.type==="cards" && <Cards block={block}/>}
     {block.type==="quiz" && <Quiz block={block}/>}
