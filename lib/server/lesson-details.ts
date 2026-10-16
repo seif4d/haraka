@@ -14,5 +14,7 @@ export function lessonDetails(data:Record<string,unknown>,previous?:LessonDetail
   }
   let blocks=base.blocks;
   if(data.blocks!==undefined){try{blocks=validateLessonBlocks(data.blocks);}catch(error){throw new AcademicError((error as Error).message);}}
-  return {unitTitle:text("unitTitle",120),unitOrder:number("unitOrder",1,100),position:number("position",1,1000),durationMinutes:number("durationMinutes",0,600),takeaways:text("takeaways",3000),application:text("application",3000),practice,blocks};
+  const editorialNotes=data.editorialNotes ?? base.editorialNotes ?? "";
+  if(typeof editorialNotes!=="string" || editorialNotes.length>6000)throw new AcademicError("ملاحظات المراجعة يجب ألا تتجاوز 6000 حرف.");
+  return {unitTitle:text("unitTitle",120),unitOrder:number("unitOrder",1,100),position:number("position",1,1000),durationMinutes:number("durationMinutes",0,600),takeaways:text("takeaways",3000),application:text("application",3000),practice,blocks,editorialNotes:editorialNotes.trim()};
 }

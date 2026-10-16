@@ -18,6 +18,7 @@
 !scripts/
 !scripts/import-third-year-schedules.cjs
 !scripts/create-training-experience.cjs
+!scripts/import-training-principles.cjs
 !scripts/start-container.cjs
 !scripts/healthcheck.cjs
 !scripts/backup-database.cjs

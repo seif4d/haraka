@@ -5,12 +5,13 @@ import { ArrowDown, ArrowLeft, ArrowUp, Check, CheckCheck, FlaskConical, Layers3
 import type { LessonBlock } from "@/lib/lesson-blocks";
 import { BLOCK_LABELS } from "@/lib/lesson-blocks";
 import styles from "./lesson-blocks.module.css";
+import LessonCopy from "./lesson-copy";
 
 export default function LessonBlocks({blocks,preview=false}:{blocks:LessonBlock[];preview?:boolean}) {
   const instance=useId().replace(/:/g,"");
   return <div className={styles.journey}>{blocks.map((block,index)=><section key={block.id} id={`${preview ? `preview-${instance}` : "block"}-${block.id}`} data-lesson-block={block.type} className={`${styles.block} ${block.type==="simulation"?styles.lab:""}`}>
     <div className={styles.kicker}><span>{String(index+1).padStart(2,"0")} / {BLOCK_LABELS[block.type]}</span>{block.type!=="text" && <span><Sparkles size={13}/>دورك تشارك</span>}</div>
-    <h2>{block.title}</h2>{block.body && <p className={styles.body}>{block.body}</p>}
+    <h2>{block.title}</h2>{block.body && <div className={styles.body}><LessonCopy text={block.body}/></div>}
     {block.type==="explore" && <Explore block={block}/>}
     {block.type==="cards" && <Cards block={block}/>}
     {block.type==="quiz" && <Quiz block={block}/>}
@@ -21,7 +22,7 @@ export default function LessonBlocks({blocks,preview=false}:{blocks:LessonBlock[
 
 function Explore({block}:{block:Extract<LessonBlock,{type:"explore"}>}) {
   const uid=useId().replace(/:/g,"");const [active,setActive]=useState(0);
-  return <div className={styles.explore}><div className={styles.tabs} role="tablist" aria-label={block.title}>{block.items.map((item,i)=><button type="button" key={i} id={`${uid}-tab-${i}`} role="tab" aria-selected={active===i} aria-controls={`${uid}-panel`} tabIndex={active===i?0:-1} onClick={()=>setActive(i)} onKeyDown={event=>{if(["ArrowLeft","ArrowRight","Home","End"].includes(event.key)){event.preventDefault();const next=event.key==="Home"?0:event.key==="End"?block.items.length-1:(active+(event.key==="ArrowLeft"?1:-1)+block.items.length)%block.items.length;setActive(next);document.getElementById(`${uid}-tab-${next}`)?.focus();}}}><span>{String(i+1).padStart(2,"0")}</span>{item.title}</button>)}</div><div role="tabpanel" id={`${uid}-panel`} aria-labelledby={`${uid}-tab-${active}`} className={styles.explorePanel}><div className={styles.orbit} aria-hidden="true"><span>{String(active+1).padStart(2,"0")}</span><i/><i/></div><div key={active} className={styles.enter}><h3>{block.items[active].title}</h3><p>{block.items[active].body}</p></div></div></div>;
+  return <div className={styles.explore}><div className={styles.tabs} role="tablist" aria-label={block.title}>{block.items.map((item,i)=><button type="button" key={i} id={`${uid}-tab-${i}`} role="tab" aria-selected={active===i} aria-controls={`${uid}-panel`} tabIndex={active===i?0:-1} onClick={()=>setActive(i)} onKeyDown={event=>{if(["ArrowLeft","ArrowRight","Home","End"].includes(event.key)){event.preventDefault();const next=event.key==="Home"?0:event.key==="End"?block.items.length-1:(active+(event.key==="ArrowLeft"?1:-1)+block.items.length)%block.items.length;setActive(next);document.getElementById(`${uid}-tab-${next}`)?.focus();}}}><span>{String(i+1).padStart(2,"0")}</span>{item.title}</button>)}</div><div role="tabpanel" id={`${uid}-panel`} aria-labelledby={`${uid}-tab-${active}`} className={styles.explorePanel}><div className={styles.orbit} aria-hidden="true"><span>{String(active+1).padStart(2,"0")}</span><i/><i/></div><div key={active} className={styles.enter}><h3>{block.items[active].title}</h3><div style={{fontSize:12}}><LessonCopy text={block.items[active].body}/></div></div></div></div>;
 }
 
 function Cards({block}:{block:Extract<LessonBlock,{type:"cards"}>}) {
