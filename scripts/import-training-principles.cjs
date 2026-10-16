@@ -3,7 +3,7 @@ const {DatabaseSync}=require('node:sqlite');
 const {resolve}=require('node:path');
 const {coursesFor,DEFAULT_PROFILE}=require('../lib/curriculum.ts');
 const {validateLessonBlocks}=require('../lib/lesson-blocks.ts');
-const lessons=require('../data/training-principles-unit1.json');
+const lessons=require('../data/training-principles-interactive.json');
 const plan=require('../data/training-principles-plan.json');
 const assert=require('node:assert/strict');
 

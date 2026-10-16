@@ -6,6 +6,8 @@ import { BLOCK_LABELS, newLessonBlock, validateLessonBlocks, type BlockType, typ
 import { TRAINING_EXPERIENCE } from "@/lib/training-experience";
 import LessonBlocks from "./lesson-blocks";
 import styles from "./lesson-blocks.module.css";
+import LessonStudioFields from "./lesson-studio-fields";
+import type { StudioBlock } from "./lesson-studio";
 
 export default function LessonBlockEditor({blocks,onChange}:{blocks:LessonBlock[];onChange:(blocks:LessonBlock[])=>void}) {
   const [preview,setPreview]=useState(false);
@@ -24,6 +26,7 @@ export default function LessonBlockEditor({blocks,onChange}:{blocks:LessonBlock[
       {block.type==="quiz" && <>{block.options.map((option,i)=><label key={i} className="field-label">الاختيار {i+1}<input required maxLength={300} aria-label={`اختيار ${i+1} بالسؤال ${index+1}`} value={option} onChange={e=>change(index,{...block,options:block.options.map((v,n)=>n===i?e.target.value:v)})}/></label>)}<label className="field-label">الإجابة الصحيحة<select aria-label={`الإجابة الصحيحة بالوحدة ${index+1}`} value={block.correctIndex} onChange={e=>change(index,{...block,correctIndex:Number(e.target.value)})}>{block.options.map((_,i)=><option value={i} key={i}>الاختيار {i+1}</option>)}</select></label><Feedback value={block.explanation} index={index} onChange={explanation=>change(index,{...block,explanation})}/></>}
       {block.type==="sequence" && <><p className={styles.builderIntro}>اكتب الخطوات بالترتيب الصحيح. الطالب هيشوفها بترتيب مختلف.</p>{block.steps.map((step,i)=><label key={i} className="field-label">الخطوة الصحيحة {i+1}<input required maxLength={250} aria-label={`خطوة ${i+1} بالوحدة ${index+1}`} value={step} onChange={e=>change(index,{...block,steps:block.steps.map((v,n)=>n===i?e.target.value:v)})}/></label>)}<div className={styles.subActions}><button type="button" disabled={block.steps.length<=3} onClick={()=>change(index,{...block,steps:block.steps.slice(0,-1)})}>احذف آخر خطوة</button><button type="button" disabled={block.steps.length>=6} onClick={()=>change(index,{...block,steps:[...block.steps,""]})}>أضف خطوة</button></div><Feedback value={block.explanation} index={index} onChange={explanation=>change(index,{...block,explanation})}/></>}
       {block.type==="simulation" && <label className="field-label">نوع المعمل<select aria-label={`نوع المعمل بالوحدة ${index+1}`} value={block.model} onChange={e=>change(index,{...block,model:e.target.value as "training-load"|"recovery"})}><option value="training-load">حساب كمية العمل — مقاومة وتكرارات ومجموعات</option><option value="recovery">مقارنة سيناريوهات الحمل والاستشفاء</option></select></label>}
+      {["story","timeline","map","sort","lab","reading"].includes(block.type) && <LessonStudioFields block={block as StudioBlock} onChange={value=>change(index,value)}/>}
     </section>)}
     {!!blocks.length && <button type="button" aria-expanded={preview} className={styles.previewToggle} onClick={()=>setPreview(!preview)}><Eye size={16}/> {preview?"إغلاق المعاينة الحية":"جرّب معاينة الطالب"}</button>}
     {preview && (error?<p role="alert" className={styles.builderError}>{error}</p>:<div className={styles.builderPreview}><LessonBlocks blocks={valid} preview/></div>)}

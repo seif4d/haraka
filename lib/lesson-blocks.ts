@@ -6,9 +6,15 @@ export type LessonBlock = BlockBase & (
   | {type:"quiz";options:string[];correctIndex:number;explanation:string}
   | {type:"sequence";steps:string[];explanation:string}
   | {type:"simulation";model:"training-load"|"recovery"}
+  | {type:"story";scene:"track"|"court"|"team"|"lab";choices:{title:string;feedback:string}[];bestIndex:number;takeaway:string}
+  | {type:"timeline";events:{label:string;title:string;body:string}[];conclusion:string}
+  | {type:"map";center:string;nodes:{label:string;body:string;example:string}[]}
+  | {type:"sort";categories:string[];items:{text:string;category:number;explanation:string}[];summary:string}
+  | {type:"lab";model:"load-wave"|"training-cycle"|"individuality"|"evidence"}
+  | {type:"reading";sections:{title:string;body:string}[]}
 );
 export type BlockType = LessonBlock["type"];
-export const BLOCK_LABELS:Record<BlockType,string>={text:"شرح قصير",explore:"استكشف وقارن",cards:"بطاقات اكتشاف",quiz:"سؤال وموقف",sequence:"رتّب الخطوات",simulation:"معمل تفاعلي"};
+export const BLOCK_LABELS:Record<BlockType,string>={text:"شرح قصير",explore:"استكشف وقارن",cards:"بطاقات اكتشاف",quiz:"سؤال وموقف",sequence:"رتّب الخطوات",simulation:"معمل تفاعلي",story:"موقف افتتاحي",timeline:"رحلة زمنية",map:"خريطة مفاهيم",sort:"تحدّي التصنيف",lab:"استوديو التجربة",reading:"تعمّق أكاديمي"};
 export function newLessonBlock(type:BlockType,id:string):LessonBlock {
   const base={id,title:"",body:""};
   switch(type){
@@ -18,6 +24,12 @@ export function newLessonBlock(type:BlockType,id:string):LessonBlock {
     case "quiz":return {...base,type,options:["","",""],correctIndex:0,explanation:""};
     case "sequence":return {...base,type,steps:["","",""],explanation:""};
     case "simulation":return {...base,type,model:"training-load"};
+    case "story":return {...base,type,scene:"court",choices:[{title:"",feedback:""},{title:"",feedback:""},{title:"",feedback:""}],bestIndex:0,takeaway:""};
+    case "timeline":return {...base,type,events:[{label:"01",title:"",body:""},{label:"02",title:"",body:""}],conclusion:""};
+    case "map":return {...base,type,center:"الفكرة الأساسية",nodes:[{label:"",body:"",example:""},{label:"",body:"",example:""},{label:"",body:"",example:""}]};
+    case "sort":return {...base,type,categories:["الفئة الأولى","الفئة الثانية"],items:[{text:"",category:0,explanation:""},{text:"",category:1,explanation:""}],summary:""};
+    case "lab":return {...base,type,model:"load-wave"};
+    case "reading":return {...base,type,sections:[{title:"",body:""}]};
   }
 }
 
@@ -39,6 +51,12 @@ export function validateLessonBlocks(value:unknown):LessonBlock[] {
       case "quiz":{const options=unique(list(b.options,3,3).map(o=>text(o,1,300)));if(!Number.isInteger(b.correctIndex)||Number(b.correctIndex)<0||Number(b.correctIndex)>2)return fail();return {...base,type:"quiz",options,correctIndex:Number(b.correctIndex),explanation:text(b.explanation,2,2000)};}
       case "sequence":return {...base,type:"sequence",steps:unique(list(b.steps,3,6).map(s=>text(s,1,250))),explanation:text(b.explanation,2,1500)};
       case "simulation":if(b.model!=="training-load"&&b.model!=="recovery")return fail();return {...base,type:"simulation",model:b.model};
+      case "story":{if(!["track","court","team","lab"].includes(String(b.scene)) || !Number.isInteger(b.bestIndex) || Number(b.bestIndex)<0 || Number(b.bestIndex)>2)return fail();const choices=list(b.choices,3,3).map(raw=>{const c=record(raw);return {title:text(c.title,2,180),feedback:text(c.feedback,2,1200)};});unique(choices.map(c=>c.title));return {...base,type:"story",scene:b.scene as "track"|"court"|"team"|"lab",choices,bestIndex:Number(b.bestIndex),takeaway:text(b.takeaway,2,1000)};}
+      case "timeline":return {...base,type:"timeline",events:list(b.events,2,6).map(raw=>{const e=record(raw);return {label:text(e.label,1,60),title:text(e.title,2,100),body:text(e.body,2,1500)};}),conclusion:text(b.conclusion,2,1000)};
+      case "map":{const nodes=list(b.nodes,3,6).map(raw=>{const n=record(raw);return {label:text(n.label,2,80),body:text(n.body,2,1500),example:text(n.example,2,1000)};});unique(nodes.map(n=>n.label));return {...base,type:"map",center:text(b.center,2,80),nodes};}
+      case "sort":{const categories=unique(list(b.categories,2,5).map(c=>text(c,2,80)));const items=list(b.items,2,8).map(raw=>{const item=record(raw);if(!Number.isInteger(item.category)||Number(item.category)<0||Number(item.category)>=categories.length)return fail();return {text:text(item.text,2,500),category:Number(item.category),explanation:text(item.explanation,2,1200)};});return {...base,type:"sort",categories,items,summary:text(b.summary,2,1000)};}
+      case "lab":if(!["load-wave","training-cycle","individuality","evidence"].includes(String(b.model)))return fail();return {...base,type:"lab",model:b.model as "load-wave"|"training-cycle"|"individuality"|"evidence"};
+      case "reading":return {...base,type:"reading",sections:list(b.sections,1,16).map(raw=>{const s=record(raw);return {title:text(s.title,2,150),body:text(s.body,2,3000)};})};
       default:return fail();
     }
   });

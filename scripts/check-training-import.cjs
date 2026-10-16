@@ -2,7 +2,7 @@ const assert=require('node:assert/strict');
 const {spawnSync}=require('node:child_process');
 const {DatabaseSync}=require('node:sqlite');
 const {resolve}=require('node:path');
-const source=require('../data/training-principles-unit1.json');
+const source=require('../data/training-principles-interactive.json');
 
 module.exports=async({base,call,admin,student,second,owner,pupil,layout})=>{
   const before=await call(admin,'admin/state',undefined,'GET');
@@ -43,7 +43,8 @@ module.exports=async({base,call,admin,student,second,owner,pupil,layout})=>{
     await plan.screenshot({path:`test-results/training-plan-${width}.png`,animations:'disabled'});
   }
   await owner.getByRole('button',{name:`تعديل ${lesson.title}`,exact:true}).click();assert.equal(await owner.locator('[name=editorialNotes]').inputValue(),notes);
-  const ninth=imported.find(l=>l.id==='sport-training-u01-l09-boys');await owner.goto(base+'/admin/content');await owner.locator('.admin-content-row').filter({hasText:ninth.title}).first().getByRole('button',{name:'معاينة',exact:true}).click();assert.equal(await owner.locator('dialog [data-lesson-block=explore]').count(),3);await owner.getByRole('button',{name:'إغلاق المعاينة',exact:true}).click();
+  const ninth=imported.find(l=>l.id==='sport-training-u01-l09-boys');await owner.goto(base+'/admin/content');await owner.locator('.admin-content-row').filter({hasText:ninth.title}).first().getByRole('button',{name:'معاينة',exact:true}).click();assert.equal(await owner.locator('dialog [data-lesson-block=reading]').count(),1);await owner.locator('dialog').getByText('أولًا: الواجبات التنموية · 1',{exact:false}).click();assert(await owner.locator('dialog').getByRole('heading',{name:'التخطيط لإنماء مستوى اللاعب',exact:false}).isVisible());await owner.getByRole('button',{name:'إغلاق المعاينة',exact:true}).click();
+  await require('./check-lesson-studio.cjs')({base,call,admin,student,owner,pupil,layout,imported});
   await call(admin,'admin/lessons',{...lesson,status:'draft'});
   const db=new DatabaseSync(process.env.HARKA_TEST_DATABASE,{readOnly:true});assert.equal(db.prepare("SELECT COUNT(*) AS n FROM lessons WHERE id LIKE 'sport-training-u01-%'").get().n,20);db.close();
   console.log('PASS: 20 training drafts, complete 37-topic admin roadmap, exact content/questions, repeat import preserves edits/status, legacy editing preserves review notes, student JSON/SSR excludes editorial metadata, gender/draft isolation, responsive tables and interactive applications.');

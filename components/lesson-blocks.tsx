@@ -6,10 +6,12 @@ import type { LessonBlock } from "@/lib/lesson-blocks";
 import { BLOCK_LABELS } from "@/lib/lesson-blocks";
 import styles from "./lesson-blocks.module.css";
 import LessonCopy from "./lesson-copy";
+import LessonStudio from "./lesson-studio";
+import LessonJourney from "./lesson-journey";
 
 export default function LessonBlocks({blocks,preview=false}:{blocks:LessonBlock[];preview?:boolean}) {
   const instance=useId().replace(/:/g,"");
-  return <div className={styles.journey}>{blocks.map((block,index)=><section key={block.id} id={`${preview ? `preview-${instance}` : "block"}-${block.id}`} data-lesson-block={block.type} className={`${styles.block} ${block.type==="simulation"?styles.lab:""}`}>
+  return <div className={styles.journey}>{blocks[0]?.type==="story" && !preview && <LessonJourney blocks={blocks}/>}{blocks.map((block,index)=><section key={block.id} id={`${preview ? `preview-${instance}` : "block"}-${block.id}`} data-lesson-block={block.type} className={`${styles.block} ${block.type==="simulation"?styles.lab:""}`}>
     <div className={styles.kicker}><span>{String(index+1).padStart(2,"0")} / {BLOCK_LABELS[block.type]}</span>{block.type!=="text" && <span><Sparkles size={13}/>دورك تشارك</span>}</div>
     <h2>{block.title}</h2>{block.body && <div className={styles.body}><LessonCopy text={block.body}/></div>}
     {block.type==="explore" && <Explore block={block}/>}
@@ -17,6 +19,7 @@ export default function LessonBlocks({blocks,preview=false}:{blocks:LessonBlock[
     {block.type==="quiz" && <Quiz block={block}/>}
     {block.type==="sequence" && <Sequence block={block}/>}
     {block.type==="simulation" && (block.model==="training-load"?<TrainingLoad/>:<Recovery/>)}
+    {(["story","timeline","map","sort","lab","reading"] as string[]).includes(block.type) && <LessonStudio block={block as Extract<LessonBlock,{type:"story"|"timeline"|"map"|"sort"|"lab"|"reading"}>}/>}
   </section>)}</div>;
 }
 
