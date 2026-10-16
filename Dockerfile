@@ -22,9 +22,9 @@ COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 COPY --from=builder --chown=node:node /app/public ./public
 # Keep the explicit, optional schedule-import command available in Coolify Terminal.
-COPY --from=builder --chown=node:node /app/lib/curriculum.ts ./lib/curriculum.ts
+COPY --from=builder --chown=node:node /app/lib/curriculum.ts /app/lib/training-experience.ts /app/lib/lesson-blocks.ts ./lib/
 COPY --from=builder --chown=node:node /app/data ./data
-COPY --from=builder --chown=node:node /app/scripts/import-third-year-schedules.cjs /app/scripts/start-container.cjs /app/scripts/healthcheck.cjs /app/scripts/backup-database.cjs ./scripts/
+COPY --from=builder --chown=node:node /app/scripts/import-third-year-schedules.cjs /app/scripts/create-training-experience.cjs /app/scripts/start-container.cjs /app/scripts/healthcheck.cjs /app/scripts/backup-database.cjs ./scripts/
 RUN mkdir -p /app/.data && chown node:node /app/.data
 USER node
 EXPOSE 3000

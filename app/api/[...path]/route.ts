@@ -177,7 +177,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       const courseId = text(data.courseId, 1, 200, "المقرر");
       need(catalog.some(course => course.id === courseId), "المقرر غير موجود.");
       const title = text(data.title, 2, 120, "العنوان"); const intro = text(data.intro, 2, 300, "المقدمة");
-      const body = text(data.body, 2, 25000, "الشرح"); const video = typeof data.youtubeUrl === "string" ? data.youtubeUrl.trim() : "";
+      const body = text(data.body, 0, 25000, "الشرح"); const video = typeof data.youtubeUrl === "string" ? data.youtubeUrl.trim() : "";
       const sportId=typeof data.sportId==="string" ? data.sportId : "";
       need(!sportId || sportsFor(catalog.find(c=>c.id===courseId)!).some(s=>s.id===sportId),"اختار رياضة متاحة لهذا المقرر.");
       need(video.length <= 2048 && (!video || youtubeId(video)), "رابط YouTube غير صالح.");
@@ -185,6 +185,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       const existing = db().prepare("SELECT id FROM lessons WHERE id=?").get(id);
       need(!data.id || existing, "الدرس غير موجود.", 404);
       const details=lessonDetails(data,existing?listLessons().find(l=>l.id===id):undefined);
+      need(body.length>=2 || details.blocks.length>0,"أضف شرحًا أو وحدة تفاعلية مكتملة للدرس.");
       const now = new Date().toISOString();
       transaction(() => {
         if (existing) db().prepare("UPDATE lessons SET course_id=?,title=?,intro=?,body=?,youtube_url=?,status=?,updated_at=?,sport_id=? WHERE id=?").run(courseId, title, intro, body, video, data.status as string, now, sportId, id);
