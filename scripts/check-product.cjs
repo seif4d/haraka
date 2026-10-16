@@ -1,3 +1,4 @@
+const {settings,publishing,closeSettings,saveAndReturn}=require('./author-test-helpers.cjs');
 const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 const { randomBytes } = require('node:crypto');
@@ -47,7 +48,7 @@ async function layout(page,path,width,name) {
     await publicPage.goto(`${base}/setup`);assert.equal(new URL(publicPage.url()).pathname,'/login');
     await owner.goto(`${base}/admin/content`);await owner.getByRole('button',{name:'درس جديد',exact:true}).click();
     await owner.locator('[name=title]').fill('درس منتج تجريبي');await owner.locator('[name=intro]').fill('مقدمة لدرس يختبر فصل النشر عن المسودات.');await owner.getByText('نص سابق أو مقدمة مطوّلة وفيديو',{exact:true}).click();await owner.locator('[name=body]').fill('شرح أول للدرس.\n\nمثال وتطبيق يوضح الفكرة.');
-    await owner.getByRole('button',{name:'حفظ الدرس وحالة النشر'}).click();await owner.getByRole('heading',{name:'درس منتج تجريبي',exact:true}).waitFor();
+    await saveAndReturn(owner);await owner.getByRole('heading',{name:'درس منتج تجريبي',exact:true}).waitFor();
     let state=await call(admin,'admin/state',undefined,'GET');let lesson=state.lessons.find(x=>x.title==='درس منتج تجريبي');assert(lesson);assert.equal(lesson.status,'draft');
     await call(admin,'admin/lessons',{...lesson,youtubeUrl:'https://evil.example/video',status:'published'},'POST',400);
     await call(admin,'admin/lessons',{...lesson,courseId:'missing-course',status:'published'},'POST',400);
@@ -62,8 +63,8 @@ async function layout(page,path,width,name) {
     assert.equal((await pupil.goto(`${base}/student/lessons/${lesson.id}`)).status(),404);
     await pupil.goto(`${base}/admin`);assert.equal(new URL(pupil.url()).pathname,'/student');
     await pupil.goto(`${base}/instructor`);assert.equal(new URL(pupil.url()).pathname,'/student');
-    await owner.getByRole('button',{name:'تعديل درس منتج تجريبي',exact:true}).click();await owner.locator('[name=status]').selectOption('published');
-    await owner.getByRole('button',{name:'حفظ الدرس وحالة النشر'}).click();await owner.getByText('منشور للطلاب',{exact:true}).waitFor();
+    await owner.getByRole('button',{name:'تعديل درس منتج تجريبي',exact:true}).click();await publishing(owner);await owner.locator('[name=status]').selectOption('published');
+    await saveAndReturn(owner);await owner.getByText('منشور للطلاب',{exact:true}).waitFor();
     state=await call(student,'student/state',undefined,'GET');assert.equal(state.lessons.length,1);
     await pupil.goto(`${base}/student/courses/${lesson.courseId}`);await pupil.getByRole('button').filter({hasText:'درس منتج تجريبي'}).click();await pupil.waitForURL(`${base}/student/lessons/${lesson.id}`);
     await pupil.getByRole('button',{name:'أنهيت قراءة الدرس',exact:true}).click();await pupil.getByRole('button',{name:'الدرس مكتمل',exact:true}).waitFor();
@@ -164,6 +165,7 @@ async function layout(page,path,width,name) {
     await require('./check-training-import.cjs')({base,call,admin,student,second,owner,pupil,layout});
     await require('./check-content-workspace.cjs')({base,call,admin,student,owner,pupil,layout});
     await require('./check-document-authoring.cjs')({base,call,admin,student,owner,pupil});
+    await require('./check-lesson-author-page.cjs')({base,call,admin,student,owner,pupil});
     await require('./check-admin-settings.cjs')({base,call,admin,student,anon,owner,pupil,publicPage,password,layout,browser});
     await call(student,'auth/logout',{});await call(student,'student/state',undefined,'GET',401);
     const database=new DatabaseSync(process.env.HARKA_TEST_DATABASE || 'test-results/product-test.sqlite',{readOnly:true});

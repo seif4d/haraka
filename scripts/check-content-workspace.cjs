@@ -1,3 +1,4 @@
+const {settings,publishing,closeSettings,saveAndReturn}=require('./author-test-helpers.cjs');
 const assert=require('node:assert/strict');
 const {DatabaseSync}=require('node:sqlite');
 const {coursesFor,DEFAULT_PROFILE}=require('../lib/curriculum.ts');
@@ -30,17 +31,17 @@ module.exports=async({base,call,admin,student,owner,pupil,layout})=>{
   assert(!(await call(student,'student/state',undefined,'GET')).lessons.some(l=>l.id===boys.id));
   await owner.getByLabel('تحديد النتائج المعروضة',{exact:true}).check();await owner.getByLabel('فلترة الفئة',{exact:true}).selectOption('girls');assert.equal(await owner.getByRole('region',{name:'إجراءات الدروس المحددة',exact:true}).count(),0);
   await owner.getByLabel('فلترة الفئة',{exact:true}).selectOption('boys');await owner.getByRole('button',{name:`تعديل ${title}`,exact:true}).click();
-  const editor=owner.getByRole('dialog',{name:'راجع وعدّل الشرح',exact:true});await editor.waitFor();assert.equal(await editor.getByRole('navigation',{name:'أقسام محرر الدرس',exact:true}).getByRole('button').count(),4);
+  const editor=owner.locator('[data-lesson-author]');await editor.waitFor();assert(new URL(owner.url()).pathname.endsWith('/edit'));assert.equal(await editor.getByRole('tablist',{name:'وضع استوديو الدرس'}).getByRole('tab').count(),2);assert.equal(await editor.locator('dialog').count(),0);
   await editor.locator('[name=intro]').fill('مسودة من المحرر يجب أن تظل موجودة عند اكتشاف تعارض.');
   for(const width of [320,390,1440]){await owner.setViewportSize({width,height:900});assert(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await owner.screenshot({path:`test-results/content-studio-editor-${width}.png`,animations:'disabled'});}
   boys=(await call(admin,'admin/state',undefined,'GET')).lessons.find(l=>l.id===boys.id);
   const current=(await call(admin,'admin/lessons',{...boys,body:'شرح أحدث من جلسة ثانية، لا ينبغي أن يضيع.'})).lesson;
   await editor.getByRole('button',{name:'حفظ الدرس وحالة النشر',exact:true}).click();await editor.getByRole('alert').filter({hasText:'جلسة أخرى'}).waitFor();assert.equal(await editor.locator('[name=intro]').inputValue(),'مسودة من المحرر يجب أن تظل موجودة عند اكتشاف تعارض.');
   assert.equal((await call(admin,'admin/state',undefined,'GET')).lessons.find(l=>l.id===boys.id).body,current.body);
-  owner.once('dialog',dialog=>dialog.dismiss());await editor.getByRole('button',{name:'إغلاق المحرر',exact:true}).click();assert(await editor.isVisible());
-  owner.once('dialog',dialog=>dialog.accept());await editor.getByRole('button',{name:'إغلاق المحرر',exact:true}).click();await editor.waitFor({state:'hidden'});
+  owner.once('dialog',dialog=>dialog.dismiss());await editor.getByRole('button',{name:'العودة للمحتوى',exact:true}).click();assert(await editor.isVisible());
+  owner.once('dialog',dialog=>dialog.accept());await editor.getByRole('button',{name:'العودة للمحتوى',exact:true}).click();await editor.waitFor({state:'hidden'});
   await owner.goto(base+'/admin/content');await owner.getByLabel('البحث في الدروس',{exact:true}).fill('اعداد اللاعب');await owner.getByLabel('فلترة الفئة',{exact:true}).selectOption('boys');await owner.locator('[data-content-lesson]').getByRole('button',{name:'معاينة',exact:true}).click();const preview=owner.locator('dialog');assert(await preview.getByRole('heading',{name:'التطبيق',exact:true}).isVisible());assert.equal(await preview.locator('[data-lesson-block=quiz]').count(),1);assert(!(await preview.textContent()).includes('INTERNAL-WORKSPACE-NOTES'));await owner.getByRole('button',{name:'إغلاق المعاينة',exact:true}).click();
   for(const width of [320,390,768,1440])await layout(owner,'/admin/content',width,'content-workspace');
   for(const lesson of [boys,girls])await call(admin,'admin/lessons',{id:lesson.id},'DELETE');
-  console.log('PASS: Arabic content search; cohort/subject filters; unit grouping; real bulk publishing/drafting; role validation and atomic stale/missing-row rejection; progress/text/editorial preservation; modal editing and unsaved dismissal; concurrent edit protection; complete preview; responsive workspace.');
+  console.log('PASS: Arabic content search; cohort/subject filters; unit grouping; real bulk publishing/drafting; role validation and atomic stale/missing-row rejection; progress/text/editorial preservation; dedicated author route and unsaved navigation protection; concurrent edit protection; complete preview; responsive workspace.');
 };

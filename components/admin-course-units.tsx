@@ -8,9 +8,9 @@ import { api } from "@/lib/client-api";
 import { ProfileFilters } from "./profile-filters";
 import s from "./admin-course-units.module.css";
 
-export default function AdminCourseUnits({units,lessons,onReload,onNew,onEdit}:{units:CourseUnit[];lessons:Lesson[];onReload:()=>Promise<void>;onNew:(courseId:string,unitId:string)=>void;onEdit:(lesson:Lesson)=>void}){
-  const [profile,setProfile]=useState<Profile>(()=>profileForCourse(units[0]?.courseId)||DEFAULT_PROFILE);
-  const [courseId,setCourseId]=useState(()=>units[0]?.courseId||coursesFor(DEFAULT_PROFILE)[0].id);
+export default function AdminCourseUnits({units,lessons,onReload,onNew,onEdit,initialCourseId}:{initialCourseId?:string;units:CourseUnit[];lessons:Lesson[];onReload:()=>Promise<void>;onNew:(courseId:string,unitId:string)=>void;onEdit:(lesson:Lesson)=>void}){
+  const [profile,setProfile]=useState<Profile>(()=>profileForCourse(initialCourseId||units[0]?.courseId)||DEFAULT_PROFILE);
+  const [courseId,setCourseId]=useState(()=>initialCourseId||units[0]?.courseId||coursesFor(DEFAULT_PROFILE)[0].id);
   const [title,setTitle]=useState("");const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");const [rename,setRename]=useState("");const [newName,setNewName]=useState("");const [drag,setDrag]=useState("");
   const current=units.filter(u=>u.courseId===courseId).sort((a,b)=>a.position-b.position||a.id.localeCompare(b.id));
   const rows=lessons.filter(l=>l.courseId===courseId);
