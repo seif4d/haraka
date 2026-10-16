@@ -172,6 +172,19 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       try { return json({schedule:saveSchedule(data,user.id)}); }
       catch(error) {throw new ApiError((error as Error).message);}
     }
+    if(path === "admin/lessons/status" && request.method === "PATCH") {
+      need(data.status==="draft"||data.status==="published","اختر حالة النشر.");
+      need(Array.isArray(data.lessons)&&data.lessons.length>=1&&data.lessons.length<=200,"حدد من درس واحد إلى ٢٠٠ درس.");
+      const targets=data.lessons.map((raw:unknown)=>{need(raw&&typeof raw==="object"&&!Array.isArray(raw),"اختيار درس غير صالح.");const item=raw as Record<string,unknown>;return {id:text(item.id,1,100,"معرّف الدرس"),updatedAt:text(item.updatedAt,1,100,"تاريخ آخر تعديل")};});
+      need(new Set(targets.map(t=>t.id)).size===targets.length,"اختيارات الدروس متكررة.");
+      let changed=0;
+      transaction(()=>{
+        const rows=targets.map(target=>{const row=db().prepare("SELECT id,status,updated_at FROM lessons WHERE id=?").get(target.id);need(row,"أحد الدروس لم يعد موجودًا. حدّث القائمة.",404);need(row.updated_at===target.updatedAt,"أحد الدروس اتعدّل بعد فتح القائمة. حدّث الصفحة وراجع التعديل قبل تغيير النشر.",409);return row;});
+        const now=new Date().toISOString();
+        for(const row of rows)if(row.status!==data.status){db().prepare("UPDATE lessons SET status=?,updated_at=? WHERE id=?").run(data.status as string,now,String(row.id));audit(user.id,"update_lesson",String(row.id));changed++;}
+      });
+      return json({changed});
+    }
     if (path === "admin/lessons" && request.method === "POST") {
       const id = data.id ? text(data.id, 1, 100, "الدرس") : randomUUID();
       const courseId = text(data.courseId, 1, 200, "المقرر");
@@ -188,6 +201,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       need(body.length>=2 || details.blocks.length>0,"أضف شرحًا أو وحدة تفاعلية مكتملة للدرس.");
       const now = new Date().toISOString();
       transaction(() => {
+        if(existing&&data.expectedUpdatedAt!==undefined){const current=db().prepare("SELECT updated_at FROM lessons WHERE id=?").get(id);need(current?.updated_at===data.expectedUpdatedAt,"الدرس اتعدّل في جلسة أخرى. احتفظ بنصك وراجع أحدث نسخة قبل الحفظ.",409);}
         if (existing) db().prepare("UPDATE lessons SET course_id=?,title=?,intro=?,body=?,youtube_url=?,status=?,updated_at=?,sport_id=? WHERE id=?").run(courseId, title, intro, body, video, data.status as string, now, sportId, id);
         else db().prepare("INSERT INTO lessons(id,course_id,title,intro,body,youtube_url,status,author_id,created_at,updated_at,sport_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)").run(id, courseId, title, intro, body, video, data.status as string, user.id, now, now,sportId);
         db().prepare("UPDATE lessons SET structure=? WHERE id=?").run(JSON.stringify(details),id);
