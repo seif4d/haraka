@@ -22,7 +22,7 @@ module.exports=async({base,call,admin,student,second,owner,pupil,layout})=>{
   await owner.getByLabel('أدوات المقطع 8',{exact:true}).click();await owner.getByRole('button',{name:'نسخ الوحدة 8',exact:true}).click();await owner.locator('[data-lesson-author]').waitFor();assert.equal(await owner.locator('[data-block-editor]').count(),9);await owner.getByLabel('أدوات المقطع 9',{exact:true}).click();await owner.getByRole('button',{name:'حذف الوحدة 9',exact:true}).click();
   await closeSettings(owner);await owner.getByRole('tab',{name:'معاينة',exact:true}).click();assert.equal(await owner.locator('[data-lesson-block]').count(),8);
   assert.equal(await owner.locator('[data-simulation=training-load] input[type=range]').count(),3);await owner.getByRole('button',{name:'معاينة الهاتف',exact:true}).click();assert(await owner.locator('[data-author-preview]').evaluate(e=>e.scrollWidth<=e.clientWidth+1));await owner.getByRole('button',{name:'معاينة الكمبيوتر',exact:true}).click();await owner.getByRole('tab',{name:'كتابة',exact:true}).click();
-  await saveAndReturn(owner);await owner.getByRole('heading',{name:title,exact:true}).waitFor();
+  await saveAndReturn(owner);await owner.locator('[data-content-lesson]').getByRole('heading',{name:title,exact:true}).waitFor();
   let lesson=(await call(admin,'admin/state',undefined,'GET')).lessons.find(l=>l.title===title);assert(lesson);assert.equal(lesson.body,'');assert.equal(lesson.blocks.length,8);assert.equal(new Set(lesson.blocks.map(b=>b.id)).size,8);
   assert.equal((await pupil.goto(`${base}/student/lessons/${lesson.id}`)).status(),404);
   await call(admin,'admin/lessons',{...lesson,blocks:[{...lesson.blocks[0],correctIndex:99}]},'POST',400);

@@ -5,10 +5,10 @@ import type { Lesson } from "@/lib/domain";
 import LessonCopy from "./lesson-copy";
 import styles from "./admin-training-plan.module.css";
 
-export default function AdminTrainingPlan({plan,lessons,onEdit}:{plan:TrainingPlan;lessons:Lesson[];onEdit:(lesson:Lesson)=>void}){
+export default function AdminTrainingPlan({plan,lessons,onEdit,defaultOpen=false}:{defaultOpen?:boolean;plan:TrainingPlan;lessons:Lesson[];onEdit:(lesson:Lesson)=>void}){
   const written=plan.units.flatMap(u=>u.lessons).filter(l=>l.written).length;
   const total=plan.units.reduce((n,u)=>n+u.lessons.length,0);
-  return <details className={styles.plan} data-training-plan><summary><span className={styles.icon}><BookOpen size={22}/></span><span><small>خريطة التأليف · تانية، ترم أول · بنين وبنات</small><strong>{plan.title}</strong></span><span className={styles.count}><b dir="ltr">{written} / {total}</b><small>دروس مكتوبة</small></span></summary><div className={styles.content}>
+  return <details className={styles.plan} data-training-plan open={defaultOpen}><summary><span className={styles.icon}><BookOpen size={22}/></span><span><small>خريطة التأليف · تانية، ترم أول · بنين وبنات</small><strong>{plan.title}</strong></span><span className={styles.count}><b dir="ltr">{written} / {total}</b><small>دروس مكتوبة</small></span></summary><div className={styles.content}>
     <div className={styles.intro}><span className="tag lilac">٥ وحدات · {plan.status}</span><LessonCopy text={plan.intro}/><h3>قبل البداية</h3><LessonCopy text={plan.prerequisites}/></div>
     {plan.units.map(unit=><details className={styles.unit} key={unit.order} open={unit.order===1}><summary><span>{String(unit.order).padStart(2,"0")}</span><strong>{unit.title}</strong><small>{unit.lessons.length} دروس</small></summary><div className={styles.unitBody}><p>{unit.question}</p><ol>{unit.lessons.map(item=>{
       const copies=(["boys","girls"] as const).map(gender=>({gender,lesson:lessons.find(l=>l.id===`${item.sourceId}-${gender}`)}));
