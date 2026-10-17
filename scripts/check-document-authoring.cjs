@@ -10,7 +10,7 @@ module.exports=async({base,call,admin,student,owner,pupil})=>{
   await owner.setViewportSize({width:1440,height:900});await owner.goto(base+'/admin/content');
   await owner.getByRole('tab',{name:/المواد والوحدات/}).click();
   const manager=owner.locator('details').filter({has:owner.locator('select[aria-label="مادة إدارة الوحدات"]')}).first();
-  await manager.getByLabel('وحدات: الفرقة الدراسية',{exact:true}).selectOption('1');await manager.getByLabel('وحدات: الفئة الدراسية',{exact:true}).selectOption('boys');await manager.getByLabel('وحدات: الفصل الدراسي',{exact:true}).selectOption('1');await manager.getByLabel('مادة إدارة الوحدات',{exact:true}).selectOption(courseId);
+  await manager.getByLabel('وحدات: الفرقة الدراسية',{exact:true}).selectOption('1');await manager.getByLabel('وحدات: الفئة الدراسية',{exact:true}).selectOption('shared');await manager.getByLabel('وحدات: الفصل الدراسي',{exact:true}).selectOption('1');await manager.getByLabel('مادة إدارة الوحدات',{exact:true}).selectOption(courseId);
   for(const title of ['وحدة البداية — المحرر','وحدة التطبيق — المحرر']){await manager.getByLabel('اسم الوحدة الجديدة',{exact:true}).fill(title);await manager.getByRole('button',{name:'إضافة وحدة',exact:true}).click();await manager.getByRole('heading',{name:new RegExp(title)}).waitFor();}
   let units=(await call(admin,'admin/state',undefined,'GET')).units.filter(u=>u.courseId===courseId);let first=units.find(u=>u.title==='وحدة البداية — المحرر'),second=units.find(u=>u.title==='وحدة التطبيق — المحرر');assert(first&&second);
   const before=structuredClone(units);await manager.getByRole('button',{name:'رفع وحدة وحدة التطبيق — المحرر',exact:true}).click();await manager.getByRole('status').getByText('اتحفظ ترتيب الوحدات.',{exact:true}).waitFor();
@@ -41,7 +41,7 @@ module.exports=async({base,call,admin,student,owner,pupil})=>{
   await call(student,'admin/lessons/order',{courseId,unitId:first.id,lessons:targets},'PATCH',403);
   await call(admin,'admin/lessons/order',{courseId,unitId:first.id,lessons:targets.map((l,i)=>({...l,updatedAt:i?'stale':l.updatedAt}))},'PATCH',409);
   assert.equal((await call(admin,'admin/state',undefined,'GET')).lessons.find(l=>l.id===another.id).position,2);
-  await owner.reload();await manager.getByLabel('وحدات: الفرقة الدراسية',{exact:true}).selectOption('1');await manager.getByLabel('وحدات: الفئة الدراسية',{exact:true}).selectOption('boys');await manager.getByLabel('وحدات: الفصل الدراسي',{exact:true}).selectOption('1');await manager.getByLabel('مادة إدارة الوحدات',{exact:true}).selectOption(courseId);
+  await owner.reload();await manager.getByLabel('وحدات: الفرقة الدراسية',{exact:true}).selectOption('1');await manager.getByLabel('وحدات: الفئة الدراسية',{exact:true}).selectOption('shared');await manager.getByLabel('وحدات: الفصل الدراسي',{exact:true}).selectOption('1');await manager.getByLabel('مادة إدارة الوحدات',{exact:true}).selectOption(courseId);
   await manager.getByRole('button',{name:'رفع الدرس خطوة تالية — المحرر',exact:true}).click();await manager.getByText('اتحفظ ترتيب الدروس.',{exact:true}).waitFor();
   let latest=(await call(admin,'admin/state',undefined,'GET')).lessons;assert.equal(latest.find(l=>l.id===another.id).position,1);lesson=latest.find(l=>l.id===lesson.id);assert.equal(lesson.position,2);
   await pupil.goto(`${base}/student/courses/${courseId}`);const ordered=await pupil.locator('[data-course-lesson]').evaluateAll(es=>es.map(e=>e.getAttribute('data-course-lesson')));assert(ordered.indexOf(another.id)<ordered.indexOf(lesson.id));

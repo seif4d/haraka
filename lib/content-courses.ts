@@ -8,5 +8,7 @@ for(const course of catalog){
 }
 export const contentCourseId=(id:string)=>canonical.get(id)||id;
 export const isSharedCourse=(id:string)=>shared.has(id);
-export const contentCoursesFor=(profile:Profile)=>coursesFor(profile).map(course=>({...course,id:contentCourseId(course.id)}));
+export type ContentAudience=Profile["gender"]|"shared";
+export const contentAudienceFor=(id:string):ContentAudience=>isSharedCourse(id)?"shared":profileForCourse(id)?.gender||"boys";
+export const contentCoursesFor=(profile:Profile,audience?:ContentAudience)=>coursesFor(audience?{...profile,gender:audience==='girls'?'girls':'boys'}:profile).filter(course=>!audience||(audience==='shared'?isSharedCourse(course.id):!isSharedCourse(course.id))).map(course=>({...course,id:contentCourseId(course.id)}));
 export function contentProfileLabel(id:string){const p=profileForCourse(contentCourseId(id));return !p?'مقرر غير متاح':isSharedCourse(id)?`الفرقة ${YEARS[p.year]} · بنين وبنات${p.year>2?` · ${TRACKS[p.track]}`:''}`:profileLabel(p);}
