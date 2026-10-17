@@ -1,4 +1,6 @@
 import "server-only";
+import {contentCourseId} from "../content-courses";
+import {contentId} from "./shared-content";
 import { platformSettings } from "./platform-settings";
 import { db } from "./db";
 import type { Lesson, Schedule, StudentData, User } from "../domain";
@@ -13,20 +15,22 @@ import trainingPlan from "../../data/training-principles-plan.json";
 
 export function listLessons(publishedOnly = false): Lesson[] {
   const units=listCourseUnits();
-  return db().prepare(`SELECT id,unit_id AS unitId,sport_id AS sportId,course_id AS courseId,title,intro,body,youtube_url AS youtubeUrl,status,author_id AS authorId,created_at AS createdAt,updated_at AS updatedAt,structure FROM lessons ${publishedOnly ? "WHERE status='published'" : ""} ORDER BY created_at`).all().map(({structure,...row}) => {const unit=units.find(u=>u.id===row.unitId&&u.courseId===row.courseId);return {...row,...EMPTY_LESSON_DETAILS,...JSON.parse(String(structure)),unitId:row.unitId,...(unit?{unitTitle:unit.title,unitOrder:unit.position}:{})};}) as unknown as Lesson[];
+  return db().prepare(`SELECT id,unit_id AS unitId,sport_id AS sportId,course_id AS courseId,title,intro,body,youtube_url AS youtubeUrl,status,author_id AS authorId,created_at AS createdAt,updated_at AS updatedAt,structure FROM lessons WHERE id NOT IN (SELECT alias_id FROM content_aliases WHERE entity='lesson') ${publishedOnly ? "AND status='published'" : ""} ORDER BY created_at`).all().map(({structure,...row}) => {const unit=units.find(u=>u.id===row.unitId&&u.courseId===row.courseId);return {...row,...EMPTY_LESSON_DETAILS,...JSON.parse(String(structure)),unitId:row.unitId,...(unit?{unitTitle:unit.title,unitOrder:unit.position}:{})};}) as unknown as Lesson[];
 }
 export function studentData(user: User): StudentData {
   const specializations = userChoices(user.id);
   const settings=platformSettings();
+  const profileCourses=coursesFor(user.profile);const targetCourse=(id:string)=>profileCourses.find(c=>contentCourseId(c.id)===contentCourseId(id))?.id;
+  const publishedLessons=listLessons(true);
   const courseIds=new Set(coursesFor(user.profile).map(c=>c.id));
   const schedule = listSchedules().find(s=>s.cohortKey===cohortKey(user.profile) && s.status==="published") || null;
   return {
     announcement: settings.announcementEnabled ? settings.announcement : "",
     learning:studentLearning(user), email:user.email, specializations, schedule:schedule ? {...schedule,entries:schedule.entries.filter(e=>(!e.sportId || specializations[e.courseId]===e.sportId) && !e.excludedSportIds?.includes(specializations[e.courseId]))} : null,
-    lessonVisits:Object.fromEntries(db().prepare("SELECT course_id,lesson_id FROM lesson_visits WHERE user_id=?").all(user.id).filter(row=>courseIds.has(String(row.course_id))).map(row=>[String(row.course_id),String(row.lesson_id)])),
-    profile: user.profile, dark: false, lessons: listLessons(true).filter(l=>courseIds.has(l.courseId) && (!l.sportId || specializations[l.courseId]===l.sportId)).map(studentLesson),
+    lessonVisits:Object.fromEntries(db().prepare("SELECT course_id,lesson_id FROM lesson_visits WHERE user_id=?").all(user.id).filter(row=>courseIds.has(String(row.course_id))).map(row=>[String(row.course_id),contentId(db(),'lesson',String(row.lesson_id))])),
+    profile: user.profile, dark: false, lessons: publishedLessons.filter(l=>targetCourse(l.courseId)&&(!l.sportId||specializations[targetCourse(l.courseId)!]===l.sportId)).map(l=>studentLesson({...l,courseId:targetCourse(l.courseId)!})),
     saved: db().prepare("SELECT course_id FROM bookmarks WHERE user_id=?").all(user.id).map(row => String(row.course_id)),
-    completed: db().prepare("SELECT lesson_id FROM progress WHERE user_id=?").all(user.id).map(row => String(row.lesson_id)),
+    completed: [...new Set(db().prepare("SELECT lesson_id FROM progress WHERE user_id=?").all(user.id).map(row=>contentId(db(),'lesson',String(row.lesson_id))))],
   };
 }
 export function listUsers(): User[] { return db().prepare("SELECT id,email,role,profile,active,created_at FROM users ORDER BY created_at DESC").all().map(row => publicUser(row as unknown as Parameters<typeof publicUser>[0])); }

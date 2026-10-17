@@ -4,7 +4,7 @@ const {DatabaseSync}=require('node:sqlite');
 const {coursesFor,DEFAULT_PROFILE}=require('../lib/curriculum.ts');
 module.exports=async({base,call,admin,student,owner,pupil,layout})=>{
   const title='إعداد اللاعب — تجربة إدارة المحتوى';
-  const make=gender=>({courseId:coursesFor({...DEFAULT_PROFILE,year:2,semester:1,gender,track:'general'}).find(c=>c.title==='مبادئ التدريب الرياضي').id,title,intro:'مقدمة خاصة باختبار إدارة الدروس دون تغيير محتوى المنصة الحقيقي.',body:'شرح يحافظ على النص الأصلي عند تغيير النشر.',youtubeUrl:'',status:'draft',unitTitle:'وحدة إدارة المحتوى',unitOrder:2,position:1,durationMinutes:8,takeaways:'فكرة أولى\nفكرة ثانية',application:'حلل الموقف ودوّن تفسيرك.',editorialNotes:'INTERNAL-WORKSPACE-NOTES',practice:{question:'كيف تحافظ على النص عند النشر؟',options:['بتغيير حالة النشر فقط','بحذف الدرس','بتكرار المقرر'],correctIndex:0,explanation:'تغيير النشر لا يعدّل النص أو المعرّف.'},blocks:[]});
+  const make=gender=>({courseId:coursesFor({...DEFAULT_PROFILE,year:3,semester:1,gender,track:'training'}).find(c=>c.kind==='elective').id,title,intro:'مقدمة خاصة باختبار إدارة الدروس دون تغيير محتوى المنصة الحقيقي.',body:'شرح يحافظ على النص الأصلي عند تغيير النشر.',youtubeUrl:'',status:'draft',unitTitle:'وحدة إدارة المحتوى',unitOrder:2,position:1,durationMinutes:8,takeaways:'فكرة أولى\nفكرة ثانية',application:'حلل الموقف ودوّن تفسيرك.',editorialNotes:'INTERNAL-WORKSPACE-NOTES',practice:{question:'كيف تحافظ على النص عند النشر؟',options:['بتغيير حالة النشر فقط','بحذف الدرس','بتكرار المقرر'],correctIndex:0,explanation:'تغيير النشر لا يعدّل النص أو المعرّف.'},blocks:[]});
   let boys=(await call(admin,'admin/lessons',make('boys'),'POST',201)).lesson;
   let girls=(await call(admin,'admin/lessons',make('girls'),'POST',201)).lesson;
   const targets=(...items)=>items.map(l=>({id:l.id,updatedAt:l.updatedAt}));
@@ -18,12 +18,12 @@ module.exports=async({base,call,admin,student,owner,pupil,layout})=>{
   assert.equal(await owner.locator('[data-content-lesson]').count(),2);
   if(!await owner.getByLabel('فلترة الفئة',{exact:true}).isVisible())await owner.getByLabel('خيارات تصفية الدروس',{exact:true}).click();await owner.getByLabel('فلترة الفئة',{exact:true}).selectOption('boys');assert.equal(await owner.locator('[data-content-lesson]').count(),1);
   await owner.getByLabel('فلترة الترم',{exact:true}).selectOption('2');assert.equal(await owner.locator('[data-content-lesson]').count(),0);
-  await owner.getByLabel('فلترة الترم',{exact:true}).selectOption('1');await owner.getByLabel('فلترة الفرقة',{exact:true}).selectOption('2');assert.equal(await owner.locator('[data-content-lesson]').count(),1);
+  await owner.getByLabel('فلترة الترم',{exact:true}).selectOption('1');await owner.getByLabel('فلترة الفرقة',{exact:true}).selectOption('3');assert.equal(await owner.locator('[data-content-lesson]').count(),1);
   const row=owner.locator('[data-content-lesson]').first();await row.getByRole('button',{name:'نشر',exact:true}).click();await row.getByText('منشور للطلاب',{exact:true}).waitFor();
   boys=(await call(admin,'admin/state',undefined,'GET')).lessons.find(l=>l.id===boys.id);assert.equal(boys.status,'published');assert.equal(boys.body,make('boys').body);assert.equal(boys.editorialNotes,'INTERNAL-WORKSPACE-NOTES');
   await owner.getByLabel('فلترة الفئة',{exact:true}).selectOption('all');await owner.getByLabel('تحديد النتائج المعروضة',{exact:true}).check();await owner.getByRole('button',{name:'نشر المحدد',exact:true}).click();await owner.getByRole('region',{name:'إجراءات الدروس المحددة',exact:true}).waitFor({state:'hidden'});
   let state=await call(admin,'admin/state',undefined,'GET');boys=state.lessons.find(l=>l.id===boys.id);girls=state.lessons.find(l=>l.id===girls.id);assert.equal(boys.status,'published');assert.equal(girls.status,'published');
-  await call(student,'student/profile',{...DEFAULT_PROFILE,name:'طالب المحتوى',year:2,semester:1,gender:'boys',track:'general'},'PATCH');await call(student,'student/progress',{lessonId:boys.id});
+  await call(student,'student/profile',{...DEFAULT_PROFILE,name:'طالب المحتوى',year:3,semester:1,gender:'boys',track:'training'},'PATCH');await call(student,'student/progress',{lessonId:boys.id});
   assert((await call(student,'student/state',undefined,'GET')).lessons.some(l=>l.id===boys.id));
   const db=new DatabaseSync(process.env.HARKA_TEST_DATABASE,{readOnly:true});const before=db.prepare('SELECT structure,body,author_id,created_at FROM lessons WHERE id=?').get(boys.id);
   await owner.getByLabel('تحديد النتائج المعروضة',{exact:true}).check();await owner.getByRole('button',{name:'تحويل المحدد لمسودة',exact:true}).click();await owner.getByRole('region',{name:'إجراءات الدروس المحددة',exact:true}).waitFor({state:'hidden'});

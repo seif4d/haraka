@@ -10,12 +10,14 @@ import { adminData, listLessons, studentData } from "@/lib/server/repository";
 import { saveChoices, validateChoices } from "@/lib/server/specializations";
 import { saveSchedule } from "@/lib/server/schedules";
 import { lessonDetails } from "@/lib/server/lesson-details";
+import {contentCourseId} from "@/lib/content-courses";
+import {contentId,contentIds} from "@/lib/server/shared-content";
 import { hasLessonContent } from "@/lib/lesson-blocks";
 import { sportsFor } from "@/lib/specializations";
 import { academicRequest } from "@/lib/server/academic-http";
 import { AcademicError } from "@/lib/server/academic";
 import { platformSettings, savePlatformSettings } from "@/lib/server/platform-settings";
-import { createCourseUnit, updateCourseUnits, attachLessonUnit, UnitError } from "@/lib/server/course-units";
+import { listCourseUnits, createCourseUnit, updateCourseUnits, attachLessonUnit, UnitError } from "@/lib/server/course-units";
 import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
@@ -129,6 +131,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       return json({changed:true});
     }
     const academicResponse=academicRequest(path,request.method,data,user);if(academicResponse)return academicResponse;
+    if(["student/progress","student/lesson-visit","admin/lessons","admin/lessons/status","admin/lessons/order","admin/units"].includes(path))listCourseUnits();
     if (path === "student/state" && request.method === "GET") return json(studentData(user));
     if (path === "student/profile" && request.method === "PATCH") {
       const name = text(data.name, 2, 50, "الاسم");
@@ -153,7 +156,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       return json({ saved: data.saved });
     }
     if(path === "student/lesson-visit" && request.method === "POST") {
-      const id=text(data.lessonId,1,220,"الدرس");
+      const id=contentId(db(),'lesson',text(data.lessonId,1,220,"الدرس"));
       const demo=coursesFor(user.profile).find(course=>isDemoCourse(course) && id===`torque-${course.id}`);
       const lesson=demo?null:studentData(user).lessons.find(l=>l.id===id);
       need(demo || lesson,"الدرس غير متاح لمسارك.",404);
@@ -162,7 +165,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       return json({courseId,lessonId:id});
     }
     if (path === "student/progress" && request.method === "POST") {
-      const id = text(data.lessonId, 1, 220, "الدرس");
+      const id = contentId(db(),'lesson',text(data.lessonId, 1, 220, "الدرس"));
       const demo = coursesFor(user.profile).some(course => isDemoCourse(course) && id === `torque-${course.id}`);
       if (demo) need(data.answer === "double", "أجب عن سؤال الدرس لتسجيل إكماله.");
       else need(studentData(user).lessons.some(lesson => lesson.id === id), "الدرس غير متاح لمسارك أو غير منشور.", 404);
@@ -171,7 +174,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
     }
     if (path === "admin/state" && request.method === "GET") return json(adminData());
     if(path === "admin/units" && ["POST","PATCH"].includes(request.method)){
-      const courseId=text(data.courseId,1,200,"المقرر");need(catalog.some(c=>c.id===courseId),"المقرر غير موجود.");
+      const courseId=contentCourseId(text(data.courseId,1,200,"المقرر"));need(catalog.some(c=>c.id===courseId),"المقرر غير موجود.");
       try{return request.method==="POST"?json({unit:createCourseUnit(courseId,data.title,user.id)},{status:201}):json({units:updateCourseUnits(data,user.id)});}catch(error){if(error instanceof UnitError)throw new ApiError(error.message,error.status);throw error;}
     }
     if(path === "admin/schedules" && request.method === "POST") {
@@ -179,7 +182,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       catch(error) {throw new ApiError((error as Error).message);}
     }
     if(path === "admin/lessons/order" && request.method === "PATCH") {
-      const courseId=text(data.courseId,1,200,"المقرر");const unitId=text(data.unitId,0,100,"الوحدة");
+      const courseId=contentCourseId(text(data.courseId,1,200,"المقرر"));const unitId=contentId(db(),'unit',text(data.unitId,0,100,"الوحدة"));
       need(Array.isArray(data.lessons)&&data.lessons.length>0&&data.lessons.length<=1000,"راجع قائمة الدروس.");
       const targets=data.lessons as {id:string;updatedAt:string}[];
       transaction(()=>{
@@ -192,7 +195,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
     if(path === "admin/lessons/status" && request.method === "PATCH") {
       need(data.status==="draft"||data.status==="published","اختر حالة النشر.");
       need(Array.isArray(data.lessons)&&data.lessons.length>=1&&data.lessons.length<=200,"حدد من درس واحد إلى ٢٠٠ درس.");
-      const targets=data.lessons.map((raw:unknown)=>{need(raw&&typeof raw==="object"&&!Array.isArray(raw),"اختيار درس غير صالح.");const item=raw as Record<string,unknown>;return {id:text(item.id,1,100,"معرّف الدرس"),updatedAt:text(item.updatedAt,1,100,"تاريخ آخر تعديل")};});
+      const targets=data.lessons.map((raw:unknown)=>{need(raw&&typeof raw==="object"&&!Array.isArray(raw),"اختيار درس غير صالح.");const item=raw as Record<string,unknown>;return {id:contentId(db(),'lesson',text(item.id,1,100,"معرّف الدرس")),updatedAt:text(item.updatedAt,1,100,"تاريخ آخر تعديل")};});
       need(new Set(targets.map(t=>t.id)).size===targets.length,"اختيارات الدروس متكررة.");
       let changed=0;
       transaction(()=>{
@@ -203,8 +206,8 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       return json({changed});
     }
     if (path === "admin/lessons" && request.method === "POST") {
-      const id = data.id ? text(data.id, 1, 100, "الدرس") : randomUUID();
-      const courseId = text(data.courseId, 1, 200, "المقرر");
+      const id = data.id ? contentId(db(),'lesson',text(data.id, 1, 100, "الدرس")) : randomUUID();
+      const courseId = contentCourseId(text(data.courseId, 1, 200, "المقرر"));
       need(catalog.some(course => course.id === courseId), "المقرر غير موجود.");
       const title = text(data.title, 2, 120, "العنوان"); const intro = text(data.intro, 2, 300, "المقدمة");
       const body = text(data.body, 0, 25000, "الشرح"); const video = typeof data.youtubeUrl === "string" ? data.youtubeUrl.trim() : "";
@@ -228,12 +231,11 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       return json({ lesson: listLessons().find(lesson => lesson.id === id) }, { status: existing ? 200 : 201 });
     }
     if (path === "admin/lessons" && request.method === "DELETE") {
-      const id = text(data.id, 1, 100, "الدرس");
+      const id = contentId(db(),'lesson',text(data.id, 1, 100, "الدرس"));
       need(db().prepare("SELECT 1 FROM lessons WHERE id=?").get(id), "الدرس غير موجود.", 404);
       transaction(() => {
-        db().prepare("DELETE FROM progress WHERE lesson_id=?").run(id);
-        db().prepare("DELETE FROM lesson_visits WHERE lesson_id=?").run(id);
-        db().prepare("DELETE FROM lessons WHERE id=?").run(id); audit(user.id, "delete_lesson", id);
+        for(const target of contentIds(db(),'lesson',id)){db().prepare("DELETE FROM progress WHERE lesson_id=?").run(target);db().prepare("DELETE FROM lesson_visits WHERE lesson_id=?").run(target);db().prepare("DELETE FROM lessons WHERE id=?").run(target);}
+        db().prepare("DELETE FROM content_aliases WHERE entity='lesson' AND canonical_id=?").run(id);audit(user.id, "delete_lesson", id);
       }); return json({ deleted: true });
     }
     if (path === "admin/users" && request.method === "PATCH") {

@@ -12,7 +12,7 @@ module.exports=async({base,call,admin,student,second,owner,pupil,layout})=>{
   assert.equal(state.users.length,before.users.length);assert.equal(state.schedules.length,before.schedules.length);
   assert.equal(state.learning.resources.length,before.learning.resources.length);
   const imported=state.lessons.filter(l=>l.id.startsWith('sport-training-u01-'));
-  assert.equal(imported.length,20);assert(imported.every(l=>l.status==='draft'));
+  assert.equal(imported.length,10);assert(imported.every(l=>l.status==='draft'));
   assert.equal(state.trainingPlan.units.length,5);assert.equal(state.trainingPlan.units.flatMap(u=>u.lessons).length,37);
   assert.equal(state.trainingPlan.units.flatMap(u=>u.lessons).filter(l=>l.written).length,10);
   for(const lesson of imported){
@@ -32,7 +32,7 @@ module.exports=async({base,call,admin,student,second,owner,pupil,layout})=>{
   state=await call(admin,'admin/state',undefined,'GET');assert.equal(state.lessons.find(l=>l.id===lesson.id).title,lesson.title);assert.equal(state.lessons.find(l=>l.id===lesson.id).status,'published');
   const publicState=await call(student,'student/state',undefined,'GET');
   assert(publicState.lessons.some(l=>l.id===lesson.id));assert(!JSON.stringify(publicState).includes('PRIVATE-EDITORIAL-CANARY'));assert(!JSON.stringify(publicState).includes('editorialNotes'));assert(!JSON.stringify(publicState).includes('trainingPlan'));
-  assert(!(await call(second,'student/state',undefined,'GET')).lessons.some(l=>l.id===lesson.id));
+  assert((await call(second,'student/state',undefined,'GET')).lessons.some(l=>l.id===lesson.id));
   const response=await pupil.goto(`${base}/student/lessons/${lesson.id}`);assert.equal(response.status(),200);assert(!(await response.text()).includes('PRIVATE-EDITORIAL-CANARY'));
   assert.equal(await pupil.locator('[data-lesson-block] table').count(),1);
   const application=pupil.locator('[data-lesson-block=cards]');const answer=application.getByRole('button',{name:/قارن بإجابة نموذجية/});assert.equal(await answer.getAttribute('aria-expanded'),'false');await answer.click();assert.equal(await answer.getAttribute('aria-expanded'),'true');
@@ -47,5 +47,5 @@ module.exports=async({base,call,admin,student,second,owner,pupil,layout})=>{
   await require('./check-lesson-studio.cjs')({base,call,admin,student,owner,pupil,layout,imported});
   await call(admin,'admin/lessons',{...lesson,status:'draft'});
   const db=new DatabaseSync(process.env.HARKA_TEST_DATABASE,{readOnly:true});assert.equal(db.prepare("SELECT COUNT(*) AS n FROM lessons WHERE id LIKE 'sport-training-u01-%'").get().n,20);db.close();
-  console.log('PASS: 20 training drafts, complete 37-topic admin roadmap, exact content/questions, repeat import preserves edits/status, legacy editing preserves review notes, student JSON/SSR excludes editorial metadata, gender/draft isolation, responsive tables and interactive applications.');
+  console.log('PASS: 20 legacy rows preserved as 10 shared training lessons, complete 37-topic admin roadmap, exact content/questions, repeat import preserves edits/status, legacy editing preserves review notes, student JSON/SSR excludes editorial metadata, gender/draft isolation, responsive tables and interactive applications.');
 };

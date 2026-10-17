@@ -1,4 +1,4 @@
-import { Course, DEFAULT_PROFILE, Profile, Track, coursesFor } from "./curriculum";
+import { DEFAULT_PROFILE, coursesFor, type Course, type Profile, type Track } from "./curriculum.ts";
 
 export function allCurriculum(): Course[] {
   const map = new Map<string, Course>();

@@ -32,7 +32,7 @@ module.exports=async({base,call,admin,student,second,owner,pupil,layout})=>{
   lesson=(await call(admin,'admin/lessons',{...lesson,status:'published'})).lesson;
   // Older clients may update a lesson without sending the new block field.
   const {blocks,...legacy}=lesson;lesson=(await call(admin,'admin/lessons',legacy)).lesson;assert.deepEqual(lesson.blocks,blocks);
-  assert(!(await call(second,'student/state',undefined,'GET')).lessons.some(l=>l.id===lesson.id));
+  assert((await call(second,'student/state',undefined,'GET')).lessons.some(l=>l.id===lesson.id));
   for(const width of [320,390,768,1440]){
     await layout(pupil,`/student/lessons/${lesson.id}`,width,'interactive-reader');assert.equal(await pupil.locator('[data-lesson-block]').count(),8);
     assert.equal(await pupil.locator('[data-course-reader] iframe').count(),0);

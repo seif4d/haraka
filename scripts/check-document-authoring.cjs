@@ -4,7 +4,7 @@ const {coursesFor,DEFAULT_PROFILE}=require('../lib/curriculum.ts');
 const {validateLessonBlocks}=require('../lib/lesson-blocks.ts');
 module.exports=async({base,call,admin,student,owner,pupil})=>{
   const courseId=coursesFor({...DEFAULT_PROFILE,year:1,semester:1,gender:'boys',track:'general'})[0].id;
-  const girlCourseId=coursesFor({...DEFAULT_PROFILE,year:1,semester:1,gender:'girls',track:'general'})[0].id;
+  const girlCourseId=coursesFor({...DEFAULT_PROFILE,year:1,semester:2,gender:'girls',track:'general'})[0].id;
   await call(student,'admin/units',{courseId,title:'وحدة ممنوعة'},'POST',403);
   await call(admin,'admin/units',{courseId:'missing',title:'وحدة اختبار'},'POST',400);
   await owner.setViewportSize({width:1440,height:900});await owner.goto(base+'/admin/content');
@@ -49,5 +49,5 @@ module.exports=async({base,call,admin,student,owner,pupil})=>{
   assert.deepEqual((await call(admin,'admin/state',undefined,'GET')).lessons.find(l=>l.id===lesson.id).blocks,lesson.blocks);
   await pupil.goto(`${base}/student/lessons/${lesson.id}`);await pupil.locator('[data-lesson-block=cards]').getByRole('button',{name:/الحمل/}).click();assert.equal(await pupil.locator('[data-lesson-block=paragraph] h2').count(),0);
   for(const id of [lesson.id,another.id])await call(admin,'admin/lessons',{id},'DELETE');for(const unit of (await call(admin,'admin/state',undefined,'GET')).units.filter(u=>[first.id,second.id,foreign.id].includes(u.id)))await call(admin,'admin/units',{courseId:unit.courseId,id:unit.id,expectedUpdatedAt:unit.updatedAt,action:'delete'},'PATCH');
-  console.log('PASS: document writing, Enter/Shift+Enter, Arabic slash search and keyboard insertion, Escape, safe URLs, delete/undo, mobile command menu, preview and lossless save/reopen; persisted unit creation/rename/reorder/move; stale rollback, gender isolation, nonempty deletion protection and student progress preservation.');
+  console.log('PASS: document writing, Enter/Shift+Enter, Arabic slash search and keyboard insertion, Escape, safe URLs, delete/undo, mobile command menu, preview and lossless save/reopen; persisted unit creation/rename/reorder/move; stale rollback, cross-course isolation, nonempty deletion protection and student progress preservation.');
 };

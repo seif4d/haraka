@@ -1,4 +1,6 @@
 import "server-only";
+import {contentCourseId} from "../content-courses";
+import {contentId,contentIds,syncSharedContent} from "./shared-content";
 import { createHash, randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { db, audit, transaction } from "./db";
@@ -15,17 +17,17 @@ export function syncLegacyUnits(database:DatabaseSync) {
     database.prepare("UPDATE lessons SET unit_id=? WHERE id=? AND unit_id=''").run(id,String(row.id));
   }
 }
-export function listCourseUnits():CourseUnit[]{syncLegacyUnits(db());return db().prepare("SELECT id,course_id AS courseId,title,position,updated_at AS updatedAt FROM course_units ORDER BY course_id,position,id").all().map(row=>({...row})) as unknown as CourseUnit[];}
+export function listCourseUnits():CourseUnit[]{syncLegacyUnits(db());syncSharedContent(db());return db().prepare("SELECT id,course_id AS courseId,title,position,updated_at AS updatedAt FROM course_units WHERE id NOT IN (SELECT alias_id FROM content_aliases WHERE entity='unit') ORDER BY course_id,position,id").all().map(row=>({...row})) as unknown as CourseUnit[];}
 export class UnitError extends Error {constructor(message:string,public status=400){super(message);}}
 function requireUnit(value:unknown,message:string,status=400):asserts value {if(!value)throw new UnitError(message,status);}
 function named(value:unknown){requireUnit(typeof value==='string'&&value.trim().length>=2&&value.length<=120,'اكتب اسم الوحدة من حرفين إلى ١٢٠ حرفًا.');return value.trim();}
 export function createCourseUnit(courseId:string,title:unknown,actor:string){return transaction(()=>{
-  const units=listCourseUnits().filter(u=>u.courseId===courseId);requireUnit(units.length<100,'الحد الأقصى ١٠٠ وحدة للمقرر.');
+  courseId=contentCourseId(courseId);const units=listCourseUnits().filter(u=>u.courseId===courseId);requireUnit(units.length<100,'الحد الأقصى ١٠٠ وحدة للمقرر.');
   const unit={id:randomUUID(),courseId,title:named(title),position:Math.max(0,...units.map(u=>u.position))+1,updatedAt:new Date().toISOString()};
   db().prepare('INSERT INTO course_units VALUES(?,?,?,?,?)').run(unit.id,unit.courseId,unit.title,unit.position,unit.updatedAt);audit(actor,'create_unit',unit.id);return unit;
 });}
 export function updateCourseUnits(data:Record<string,unknown>,actor:string){return transaction(()=>{
-  const courseId=String(data.courseId||'');const units=listCourseUnits().filter(u=>u.courseId===courseId);const now=new Date().toISOString();
+  const courseId=contentCourseId(String(data.courseId||''));if(typeof data.id==='string')data={...data,id:contentId(db(),'unit',data.id)};const units=listCourseUnits().filter(u=>u.courseId===courseId);const now=new Date().toISOString();
   if(data.action==='reorder'){
     requireUnit(Array.isArray(data.units)&&data.units.length===units.length&&units.length>0,'راجع قائمة الوحدات كاملة.');
     const targets=data.units as {id:string;updatedAt:string}[];
@@ -35,13 +37,13 @@ export function updateCourseUnits(data:Record<string,unknown>,actor:string){retu
   }else{
     const unit=units.find(u=>u.id===data.id);requireUnit(unit,'الوحدة غير موجودة في المقرر.',404);requireUnit(unit.updatedAt===data.expectedUpdatedAt,'الوحدة اتعدّلت في جلسة أخرى. حدّث القائمة.',409);
     if(data.action==='rename')db().prepare('UPDATE course_units SET title=?,updated_at=? WHERE id=?').run(named(data.title),now,unit.id);
-    else if(data.action==='delete'){requireUnit(!db().prepare('SELECT 1 FROM lessons WHERE unit_id=?').get(unit.id),'انقل دروس الوحدة قبل حذفها.');db().prepare('DELETE FROM course_units WHERE id=?').run(unit.id);}
+    else if(data.action==='delete'){requireUnit(!db().prepare("SELECT 1 FROM lessons WHERE unit_id=? AND id NOT IN (SELECT alias_id FROM content_aliases WHERE entity='lesson')").get(unit.id),'انقل دروس الوحدة قبل حذفها.');for(const id of contentIds(db(),'unit',unit.id))db().prepare('DELETE FROM course_units WHERE id=?').run(id);db().prepare("DELETE FROM content_aliases WHERE entity='unit' AND canonical_id=?").run(unit.id);}
     else throw new UnitError('الإجراء غير متاح.');
   }
   audit(actor,`${data.action}_unit`,courseId);return listCourseUnits();
 });}
 export function attachLessonUnit(id:string,courseId:string,value:unknown,details:{unitTitle:string;unitOrder:number},actor:string){
-  let unitId='';
+  courseId=contentCourseId(courseId);if(typeof value==='string')value=contentId(db(),'unit',value);let unitId='';
   if(value!==undefined){requireUnit(typeof value==='string','اختيار الوحدة غير صالح.');unitId=value;if(unitId)requireUnit(db().prepare('SELECT 1 FROM course_units WHERE id=? AND course_id=?').get(unitId,courseId),'اختار وحدة من نفس المقرر.');}
   else if(details.unitTitle.trim()){
     const unit=listCourseUnits().find(u=>u.courseId===courseId&&u.title===details.unitTitle.trim()&&u.position===details.unitOrder);
