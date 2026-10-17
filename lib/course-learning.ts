@@ -1,10 +1,11 @@
+import { INTERACTIVE_TYPES } from "./lesson-blocks";
 import type { Course } from "./curriculum";
 import { isDemoCourse } from "./curriculum";
 import type { LessonDetails, StudentData } from "./domain";
 export const EMPTY_LESSON_DETAILS:LessonDetails={unitTitle:"",unitOrder:1,position:1,durationMinutes:0,takeaways:"",application:"",practice:null,blocks:[]};
 export type CourseStep={id:string;title:string;intro:string;href:string;unitId?:string;unitTitle:string;unitOrder:number;position:number;durationMinutes:number;kind:"video"|"reading"|"interactive";createdAt:string};
 export function courseSteps(course:Course,data:Pick<StudentData,"lessons">):CourseStep[]{
-  const steps:CourseStep[]=data.lessons.filter(l=>l.courseId===course.id).map(l=>({id:l.id,title:l.title,intro:l.intro,href:`/student/lessons/${l.id}`,unitId:l.unitId,unitTitle:l.unitTitle || "خطوات المادة",unitOrder:l.unitOrder,position:l.position,durationMinutes:l.durationMinutes,kind:l.blocks?.some(b=>!["text","paragraph","reading"].includes(b.type))?"interactive":l.youtubeUrl?"video":"reading",createdAt:l.createdAt}));
+  const steps:CourseStep[]=data.lessons.filter(l=>l.courseId===course.id).map(l=>({id:l.id,title:l.title,intro:l.intro,href:`/student/lessons/${l.id}`,unitId:l.unitId,unitTitle:l.unitTitle || "خطوات المادة",unitOrder:l.unitOrder,position:l.position,durationMinutes:l.durationMinutes,kind:l.blocks?.some(b=>INTERACTIVE_TYPES.includes(b.type))?"interactive":(l.youtubeUrl||l.blocks?.some(b=>b.type==='video'))?"video":"reading",createdAt:l.createdAt}));
   if(isDemoCourse(course))steps.push({id:`torque-${course.id}`,title:"نفس القوة، تأثير أكبر؟",intro:"افهم عزم القوة، جرّب ذراع العزم، واختبر نفسك.",href:`/student/demo/${course.id}`,unitTitle:"معمل الفكرة",unitOrder:0,position:0,durationMinutes:0,kind:"interactive",createdAt:""});
   return steps.sort((a,b)=>a.unitOrder-b.unitOrder || a.unitTitle.localeCompare(b.unitTitle,"ar") || a.position-b.position || a.createdAt.localeCompare(b.createdAt));
 }

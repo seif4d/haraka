@@ -10,6 +10,7 @@ import { adminData, listLessons, studentData } from "@/lib/server/repository";
 import { saveChoices, validateChoices } from "@/lib/server/specializations";
 import { saveSchedule } from "@/lib/server/schedules";
 import { lessonDetails } from "@/lib/server/lesson-details";
+import { hasLessonContent } from "@/lib/lesson-blocks";
 import { sportsFor } from "@/lib/specializations";
 import { academicRequest } from "@/lib/server/academic-http";
 import { AcademicError } from "@/lib/server/academic";
@@ -214,7 +215,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
       const existing = db().prepare("SELECT id FROM lessons WHERE id=?").get(id);
       need(!data.id || existing, "الدرس غير موجود.", 404);
       const details=lessonDetails(data,existing?listLessons().find(l=>l.id===id):undefined);
-      need(body.length>=2 || details.blocks.length>0,"أضف شرحًا أو وحدة تفاعلية مكتملة للدرس.");
+      need(body.length>=2 || hasLessonContent(details.blocks),"أضف شرحًا أو وحدة تفاعلية مكتملة للدرس.");
       const now = new Date().toISOString();
       transaction(() => {
         if(existing&&data.expectedUpdatedAt!==undefined){const current=db().prepare("SELECT updated_at FROM lessons WHERE id=?").get(id);need(current?.updated_at===data.expectedUpdatedAt,"الدرس اتعدّل في جلسة أخرى. احتفظ بنصك وراجع أحدث نسخة قبل الحفظ.",409);}

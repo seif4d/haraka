@@ -1,4 +1,5 @@
 "use client";
+import { INTERACTIVE_TYPES } from "@/lib/lesson-blocks";
 import { useMemo, useState } from "react";
 import { ArrowDownUp, BookOpen, CheckCheck, Clock3, FileText, Filter, FlaskConical, Layers3, Pencil, Play, Search, Send, Trash2, X } from "lucide-react";
 import type { Lesson } from "@/lib/domain";
@@ -14,7 +15,7 @@ type Filters={query:string;status:string;year:string;semester:string;gender:stri
 const EMPTY:Filters={query:"",status:"all",year:"all",semester:"all",gender:"all",track:"all",subject:"all"};
 const normalize=(value:string)=>value.normalize("NFKD").replace(/[\u064B-\u065F\u0670]/g,"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").toLowerCase();
 const subject=(l:Lesson)=>catalog.find(c=>c.id===l.courseId)?.title || "مقرر غير متاح";
-const interactive=(l:Lesson)=>l.blocks.some(b=>!["text","paragraph","reading"].includes(b.type));
+const interactive=(l:Lesson)=>l.blocks.some(b=>INTERACTIVE_TYPES.includes(b.type));
 export default function AdminContentWorkspace({lessons,plan,onEdit,onPreview,onDelete,onReload,onNotice,externalBusy=false}:{lessons:Lesson[];plan:TrainingPlan;onEdit:(l:Lesson)=>void;onPreview:(l:Lesson)=>void;onDelete:(l:Lesson)=>void;onReload:()=>Promise<void>;onNotice:(message:string)=>void;externalBusy?:boolean}){
   const [filters,setFilters]=useState<Filters>(EMPTY);const [group,setGroup]=useState("unit");const [sort,setSort]=useState("curriculum");const [selected,setSelected]=useState<string[]>([]);const [pending,setBusy]=useState(false);const busy=pending||externalBusy;const [error,setError]=useState("");
   const subjects=useMemo(()=>[...new Set(lessons.map(subject))].sort((a,b)=>a.localeCompare(b,"ar")),[lessons]);
