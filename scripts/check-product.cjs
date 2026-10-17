@@ -46,7 +46,7 @@ async function layout(page,path,width,name) {
     assert.equal((await admin.cookies()).find(x=>x.name==='harka_session').httpOnly,true);
     await call(anon,'auth/setup',{email:'rogue@example.test',name:'مدير آخر',password,confirmPassword:password},'POST',409);
     await publicPage.goto(`${base}/setup`);assert.equal(new URL(publicPage.url()).pathname,'/login');
-    await owner.goto(`${base}/admin/content`);await owner.getByRole('button',{name:'درس جديد',exact:true}).click();
+    await owner.goto(`${base}/admin/content/new`);
     await owner.locator('[name=title]').fill('درس منتج تجريبي');await owner.locator('[name=intro]').fill('مقدمة لدرس يختبر فصل النشر عن المسودات.');await owner.getByText('نص سابق أو مقدمة مطوّلة وفيديو',{exact:true}).click();await owner.locator('[name=body]').fill('شرح أول للدرس.\n\nمثال وتطبيق يوضح الفكرة.');
     await saveAndReturn(owner);await owner.locator('[data-content-lesson]').getByRole('heading',{name:'درس منتج تجريبي',exact:true}).waitFor();
     let state=await call(admin,'admin/state',undefined,'GET');let lesson=state.lessons.find(x=>x.title==='درس منتج تجريبي');assert(lesson);assert.equal(lesson.status,'draft');
@@ -167,7 +167,7 @@ async function layout(page,path,width,name) {
     await require('./check-document-authoring.cjs')({base,call,admin,student,owner,pupil});
     await require('./check-lesson-author-page.cjs')({base,call,admin,student,owner,pupil});
     await require('./check-writing-blocks.cjs')({base,call,admin,student,owner,pupil});
-    await require('./check-content-dashboard.cjs')({base,call,admin,owner});
+    await require('./check-content-dashboard.cjs')({base,call,admin,student,owner,pupil});
     await require('./check-shared-content.cjs')({base,call,admin,student,second,owner,pupil});
     await require('./check-admin-settings.cjs')({base,call,admin,student,anon,owner,pupil,publicPage,password,layout,browser});
     await call(student,'auth/logout',{});await call(student,'student/state',undefined,'GET',401);

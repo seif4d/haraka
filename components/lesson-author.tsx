@@ -1,5 +1,5 @@
 "use client";
-import {contentCoursesFor,contentProfileLabel,contentAudienceFor,type ContentAudience} from "@/lib/content-courses";
+import {contentCourseHref,contentCoursesFor,contentProfileLabel,contentAudienceFor,type ContentAudience} from "@/lib/content-courses";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, BookOpen, Check, CheckCheck, ChevronDown, CircleHelp, Clock3, Eye, Feather, FileText, Layers3, List, LoaderCircle, Monitor, PanelLeftClose, Plus, Save, Send, Settings2, Smartphone, Sparkles, X } from "lucide-react";
@@ -35,7 +35,7 @@ export default function LessonAuthor({initial,initialUnits,placement,justSaved=f
   function mark(){dirtyRef.current=true;setDirty(true);setNotice('');}
   function change(name:string,value:string){setFields(previous=>({...previous,[name]:value}));mark();}
   function input(name:string){return {name,value:fields[name],onChange:(event:React.ChangeEvent<HTMLInputElement|HTMLTextAreaElement|HTMLSelectElement>)=>change(name,event.target.value)};}
-  function leave(){if(busy)return;if(dirtyRef.current&&!window.confirm('عندك تعديلات لم تُحفظ. العودة للمحتوى والتخلي عنها؟'))return;dirtyRef.current=false;router.push(`/admin/content?${new URLSearchParams({courseId})}`);router.refresh();}
+  function leave(){if(busy)return;if(dirtyRef.current&&!window.confirm('عندك تعديلات لم تُحفظ. العودة للمحتوى والتخلي عنها؟'))return;dirtyRef.current=false;router.push(contentCourseHref(courseId,unitId||undefined));router.refresh();}
   function closePanel(){setPane(null);toggleRef.current?.focus({preventScroll:true});}
   useEffect(()=>{const query=matchMedia('(max-width: 850px)');const update=()=>setMobile(query.matches);update();query.addEventListener('change',update);return()=>query.removeEventListener('change',update);},[]);
   useEffect(()=>{const unload=(e:BeforeUnloadEvent)=>{if(dirtyRef.current){e.preventDefault();e.returnValue='';}};const shortcut=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveRef.current();}};addEventListener('beforeunload',unload);addEventListener('keydown',shortcut);return()=>{removeEventListener('beforeunload',unload);removeEventListener('keydown',shortcut);};},[]);

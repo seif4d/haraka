@@ -12,3 +12,5 @@ export type ContentAudience=Profile["gender"]|"shared";
 export const contentAudienceFor=(id:string):ContentAudience=>isSharedCourse(id)?"shared":profileForCourse(id)?.gender||"boys";
 export const contentCoursesFor=(profile:Profile,audience?:ContentAudience)=>coursesFor(audience?{...profile,gender:audience==='girls'?'girls':'boys'}:profile).filter(course=>!audience||(audience==='shared'?isSharedCourse(course.id):!isSharedCourse(course.id))).map(course=>({...course,id:contentCourseId(course.id)}));
 export function contentProfileLabel(id:string){const p=profileForCourse(contentCourseId(id));return !p?'مقرر غير متاح':isSharedCourse(id)?`الفرقة ${YEARS[p.year]} · بنين وبنات${p.year>2?` · ${TRACKS[p.track]}`:''}`:profileLabel(p);}
+
+export const contentCourseHref=(id:string,unitId?:string)=>`/admin/content/courses/${encodeURIComponent(contentCourseId(id))}${unitId?`?${new URLSearchParams({unitId})}`:""}`;
