@@ -1,4 +1,5 @@
 "use client";
+import AdminStudents from "./admin-students";
 import AdminOverview from "./admin-overview";
 import type {AdminOverviewSnapshot} from "@/lib/admin-overview";
 import BrandLogo from "./brand-logo";
@@ -30,16 +31,10 @@ const NAV = [{view:"overview",href:"/admin",title:"نظرة عامة",icon:Home}
 export default function AdminApp({ initialData, user, view, contentCourseId, academyData }: { initialData: AdminData; user: User; view: AdminView;contentCourseId?:string;academyData?:AcademyData }) {
   const router = useRouter(); const [data,setData] = useState(initialData);
   const [mobile,setMobile] = useState(false); const [notice,setNotice] = useState("");
-  const [preview,setPreview] = useState<Lesson|null>(null); const [query,setQuery] = useState("");
+  const [preview,setPreview] = useState<Lesson|null>(null);
   const [busy,setBusy] = useState(false);
   useEffect(()=>setData(initialData),[initialData]);
-  const students = data.users.filter(u=>u.role==="student");
   async function reload() { setData(await api<AdminData>("admin/state",undefined,"GET")); router.refresh(); }
-  async function changeUser(student: User) {
-    setBusy(true); setNotice("");
-    try { await api("admin/users",{id:student.id,active:!student.active},"PATCH"); await reload(); setNotice(student.active ? "اتوقف الحساب وانتهت جلساته المفتوحة." : "الحساب اتفعّل."); }
-    catch(error) {setNotice(error instanceof Error ? error.message : "تعذر تعديل الحساب.");} finally {setBusy(false);}
-  }
   async function deleteLesson(lesson: Lesson) {
     if(!window.confirm(`حذف «${lesson.title}» نهائيًا؟ سيُحذف تقدّم الطلاب المرتبط بهذا الدرس أيضًا.`)) return;
     setBusy(true); setNotice("");
@@ -48,17 +43,17 @@ export default function AdminApp({ initialData, user, view, contentCourseId, aca
   }
   async function logout() { try {await api("auth/logout",{});window.location.assign("/");} catch {setNotice("تعذر تسجيل الخروج.");} }
 
-  const filteredStudents = students.filter(x=>`${x.email} ${x.profile.name}`.toLowerCase().includes(query.toLowerCase()));
+
   return <div className="harka-shell admin-shell">{mobile && <button className="sidebar-scrim" aria-label="إغلاق القائمة" onClick={()=>setMobile(false)}/>}
     <aside className={`sidebar${mobile ? " expanded" : ""}`}><Link className="brand" href="/admin"><BrandLogo inverse/></Link><div className="sidebar-caption">إدارة المنصة</div><nav className="side-nav" aria-label="تنقل الإدارة">{NAV.map(item=><button key={item.view} className={view===item.view ? "active" : ""} onClick={()=>router.push(item.href)} aria-current={view===item.view ? "page" : undefined}><item.icon size={20}/>{item.title}{view===item.view && <span className="nav-dot"/>}</button>)}</nav><div className="sidebar-bottom"><button onClick={()=>window.location.assign("/")}><Home size={18}/>الصفحة العامة</button><button onClick={logout}><LogOut size={18}/>تسجيل الخروج</button><div className="sidebar-profile"><span className="avatar"><ShieldCheck size={20}/></span><span><strong>{user.profile.name}</strong><small>إدارة · صلاحية محفوظة على الخادم</small></span></div></div></aside>
     <div className="app-area"><header className="topbar"><div className="topbar-start"><button className="icon-button mobile-menu" aria-label="فتح قائمة الإدارة" onClick={()=>setMobile(true)}><Menu/></button><div className="breadcrumb"><span>الإدارة</span><ArrowLeft size={13}/><strong>{NAV.find(x=>x.view===view)?.title}</strong></div></div><span className="tag lilac"><ShieldCheck size={14}/>مساحة الإدارة</span></header><main className="page-content">
-      {view!=="content"&&view!=="academy"&&view!=="overview"&&<div className="admin-heading"><div className="page-heading"><p className="eyebrow">المكان اللي الفكرة بتكبر فيه</p><h1>{view==="users" ? "الناس ورا كل خطوة." : view==="schedule" ? "كل محاضرة، في مكانها." : view==="library" ? "مكتبة بتكبر مع الفهم." : view==="assignments" ? "من المطلوب، للتسليم." : view==="exams" ? "سؤال يختبر الفهم." : "خلّيها على مقاس منصتك."}</h1><p className="muted">{view==="users" ? "ابحث عن طالب، راجع مساره، وفعّل أو أوقف حسابه." : view==="schedule" ? "جهّز الجدول لكل مسار، وراجعه قبل نشره للطلاب." : view==="library" ? "أضف الكتب والملخصات والمراجع، وانشرها حسب المسار والتخصص." : view==="assignments" ? "حدّد المطلوب والموعد، وتابع التسليمات والملاحظات والدرجات." : view==="exams" ? "جهّز الأسئلة والوقت والمحاولات، وتابع النتائج الفعلية." : "تحكّم في التسجيل والتواصل، وراجع إعدادات حسابك وأمانه."}</p></div></div>}
+      {view!=="content"&&view!=="academy"&&view!=="overview"&&view!=="users"&&<div className="admin-heading"><div className="page-heading"><p className="eyebrow">المكان اللي الفكرة بتكبر فيه</p><h1>{view==="schedule" ? "كل محاضرة، في مكانها." : view==="library" ? "مكتبة بتكبر مع الفهم." : view==="assignments" ? "من المطلوب، للتسليم." : view==="exams" ? "سؤال يختبر الفهم." : "خلّيها على مقاس منصتك."}</h1><p className="muted">{view==="schedule" ? "جهّز الجدول لكل مسار، وراجعه قبل نشره للطلاب." : view==="library" ? "أضف الكتب والملخصات والمراجع، وانشرها حسب المسار والتخصص." : view==="assignments" ? "حدّد المطلوب والموعد، وتابع التسليمات والملاحظات والدرجات." : view==="exams" ? "جهّز الأسئلة والوقت والمحاولات، وتابع النتائج الفعلية." : "تحكّم في التسجيل والتواصل، وراجع إعدادات حسابك وأمانه."}</p></div></div>}
       {notice && <div className="admin-notice" role="status"><Check size={18}/><span>{notice}</span><button className="icon-button" aria-label="إغلاق التنبيه" onClick={()=>setNotice("")}><X size={17}/></button></div>}
       {view==="overview" && <AdminOverview data={data} user={user} onRefresh={async()=>{setData(await api<AdminData>("admin/state",undefined,"GET"));}}/>}
       {view==="academy" && academyData && ((academyData.lessonId||academyData.preview)?<AcademyStudent data={academyData}/>:<AcademyAdmin initial={academyData}/>)}
       {view==="content" && <AdminContentWorkspace initialCourseId={contentCourseId} units={data.units} lessons={data.lessons} onNew={(courseId,unitId)=>router.push(`/admin/content/new?${new URLSearchParams({courseId,unitId})}`)} onEdit={lesson=>router.push(`/admin/content/${encodeURIComponent(lesson.id)}/edit`)} onPreview={setPreview} onDelete={deleteLesson} onReload={reload} onNotice={setNotice} externalBusy={busy}/>}
 
-      {view==="users" && <><section className="filter-panel"><label className="search-field"><Search size={18}/><input aria-label="البحث عن طالب" value={query} onChange={e=>setQuery(e.target.value)} placeholder="اسم الطالب أو البريد الإلكتروني…"/></label></section><div className="catalog-heading"><span>{filteredStudents.length} حساب طالب</span><span>الصلاحيات تُراجع على الخادم</span></div><div className="student-list">{filteredStudents.map(student=><article className="student-row" key={student.id}><span className="mini-icon lilac">{student.profile.name[0]}</span><div><h3>{student.profile.name}</h3><p dir="ltr">{student.email}</p><small>{profileLabel(student.profile)} · الترم {student.profile.semester}</small></div><span className={`tag ${student.active ? "status-published" : "status-draft"}`}>{student.active ? "نشط" : "موقوف"}</span><button className="button outline-button" disabled={busy} onClick={()=>changeUser(student)}>{student.active ? "إيقاف الحساب" : "تفعيل الحساب"}</button></article>)}{!filteredStudents.length && <div className="empty-state"><Users size={30}/><h2>{students.length ? "مفيش نتيجة بالاسم ده." : "لسه بنستقبل أول طالب."}</h2><p>حسابات الطلاب تظهر هنا بعد التسجيل من الصفحة العامة.</p></div>}</div></>}
+      {view==="users" && <AdminStudents users={data.users} asOf={data.overview.generatedAt} onUserChange={user=>setData(previous=>({...previous,users:previous.users.map(u=>u.id===user.id?user:u)}))} onRefresh={async()=>{setData(await api<AdminData>("admin/state",undefined,"GET"));}}/>}
       {(view==="library" || view==="assignments" || view==="exams") && <AdminLearningPanel key={view} kind={view} data={data.learning} onReload={reload}/>}
       {view==="schedule" && <AdminSchedule schedules={data.schedules} onReload={reload}/>}
       {view==="settings" && <AdminSettings initial={data.settings} user={user} onReload={reload}/>}

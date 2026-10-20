@@ -1,3 +1,4 @@
+import {adminStudentDetails} from "@/lib/server/admin-students";
 import { createHash, timingSafeEqual, randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
 import { sameOrigin, secureSession } from "@/lib/request-origin";
@@ -238,14 +239,16 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
         db().prepare("DELETE FROM content_aliases WHERE entity='lesson' AND canonical_id=?").run(id);audit(user.id, "delete_lesson", id);
       }); return json({ deleted: true });
     }
+    if (/^admin\/users\/[^/]+$/.test(path) && request.method === "GET") return json(adminStudentDetails(text(path.slice("admin/users/".length),1,100,"الحساب")));
     if (path === "admin/users" && request.method === "PATCH") {
       const id = text(data.id, 1, 100, "الحساب"); need(typeof data.active === "boolean", "حالة الحساب غير صالحة.");
       need(db().prepare("SELECT 1 FROM users WHERE id=? AND role='student'").get(id), "يمكن تعديل حالة حسابات الطلاب فقط.", 403);
       transaction(() => {
+        if(data.expectedActive!==undefined){need(typeof data.expectedActive==='boolean',"راجع حالة الحساب السابقة.");const current=db().prepare("SELECT active FROM users WHERE id=? AND role='student'").get(id);need(!!current?.active===data.expectedActive,"حالة الحساب اتغيرت في نافذة أخرى. حدّث القائمة وراجع الحالة قبل التأكيد.",409);}
         db().prepare("UPDATE users SET active=? WHERE id=?").run(Number(data.active), id);
         if (!data.active) db().prepare("DELETE FROM sessions WHERE user_id=?").run(id);
         audit(user.id, data.active ? "activate_student" : "suspend_student", id);
-      }); return json({ updated: true });
+      }); return json({ updated: true, user:publicUser(db().prepare("SELECT id,email,role,profile,active,created_at FROM users WHERE id=?").get(id) as unknown as Parameters<typeof publicUser>[0]) });
     }
     throw new ApiError("المسار أو طريقة الطلب غير متاحة.", 404);
   } catch (error) {
