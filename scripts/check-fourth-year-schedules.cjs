@@ -5,9 +5,10 @@ const source=require('../data/fourth-year-2026-2027.cjs');
 const {coursesFor}=require('../lib/curriculum.ts');
 module.exports=async({base,call,admin,student,pupil,layout})=>{
  const other=s=>JSON.stringify(s.schedules.filter(s=>!s.cohortKey.startsWith('4-')));
- const previous=other(await call(admin,'admin/state',undefined,'GET'));
- const run=()=>JSON.parse(execFileSync(process.execPath,[join(__dirname,'import-fourth-year-schedules.cjs')],{env:process.env,encoding:'utf8'}));
- assert.deepEqual(run().schedules.map(s=>s.entries),[15,14,16,18,15,14]);
+ const initial=await call(admin,'admin/state',undefined,'GET');const previous=other(initial);
+ const run=(replace=false)=>JSON.parse(execFileSync(process.execPath,[join(__dirname,'import-fourth-year-schedules.cjs'),...(replace?['--replace']:[])],{env:process.env,encoding:'utf8'}));
+ const first=run();for(const existing of initial.schedules.filter(s=>s.cohortKey.startsWith('4-')))assert.equal(first.schedules.find(s=>s.cohort===existing.cohortKey).action,'preserved');
+ assert.deepEqual(run(true).schedules.map(s=>s.entries),[15,14,16,18,15,14]);
  assert(run().schedules.every(s=>s.action==='preserved'));
  const state=await call(admin,'admin/state',undefined,'GET');assert.equal(other(state),previous);
  for(const [track,definition]of Object.entries(source.tracks))for(const gender of ['boys','girls']){
