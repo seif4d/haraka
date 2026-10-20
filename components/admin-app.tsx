@@ -53,7 +53,7 @@ export default function AdminApp({ initialData, user, view, contentCourseId, aca
       {view==="academy" && academyData && ((academyData.lessonId||academyData.preview)?<AcademyStudent data={academyData}/>:<AcademyAdmin initial={academyData}/>)}
       {view==="content" && <AdminContentWorkspace initialCourseId={contentCourseId} units={data.units} lessons={data.lessons} onNew={(courseId,unitId)=>router.push(`/admin/content/new?${new URLSearchParams({courseId,unitId})}`)} onEdit={lesson=>router.push(`/admin/content/${encodeURIComponent(lesson.id)}/edit`)} onPreview={setPreview} onDelete={deleteLesson} onReload={reload} onNotice={setNotice} externalBusy={busy}/>}
 
-      {view==="users" && <AdminStudents users={data.users} asOf={data.overview.generatedAt} onUserChange={user=>setData(previous=>({...previous,users:previous.users.map(u=>u.id===user.id?user:u)}))} onRefresh={async()=>{setData(await api<AdminData>("admin/state",undefined,"GET"));}}/>}
+      {view==="users" && <AdminStudents onUserDelete={id=>setData(previous=>({...previous,users:previous.users.filter(u=>u.id!==id)}))} users={data.users} asOf={data.overview.generatedAt} onUserChange={user=>setData(previous=>({...previous,users:previous.users.map(u=>u.id===user.id?user:u)}))} onRefresh={async()=>{setData(await api<AdminData>("admin/state",undefined,"GET"));}}/>}
       {(view==="library" || view==="assignments" || view==="exams") && <AdminLearningPanel key={view} kind={view} data={data.learning} onReload={reload}/>}
       {view==="schedule" && <AdminSchedule schedules={data.schedules} onReload={reload}/>}
       {view==="settings" && <AdminSettings initial={data.settings} user={user} onReload={reload}/>}

@@ -24,14 +24,18 @@ export async function verifyPassword(password: string, encoded: string) {
   const actual = await scrypt(password, salt, 64) as Buffer;
   return timingSafeEqual(actual, Buffer.from(key, "hex"));
 }
-export async function createSession(userId: string, secure: boolean) {
+export async function createSession(userId: string, secure: boolean, verified?:{email:string;passwordHash:string}) {
   const jar = await cookies();
+  // Password verification yields to the event loop. Recheck immediately before
+  // inserting the session so a concurrent reset, suspension or deletion wins.
+  if(verified){const current=db().prepare('SELECT email,password_hash,active FROM users WHERE id=?').get(userId);if(!current||current.active!==1||current.email!==verified.email||current.password_hash!==verified.passwordHash)return false;}
   const old = jar.get(COOKIE)?.value;
   if (old) db().prepare("DELETE FROM sessions WHERE token_hash=?").run(hash(old));
   db().prepare("DELETE FROM sessions WHERE expires_at<=?").run(Date.now());
   const token = randomBytes(32).toString("hex");
   db().prepare("INSERT INTO sessions VALUES(?,?,?)").run(hash(token), userId, Date.now() + SESSION_SECONDS * 1000);
   jar.set(COOKIE, token, { httpOnly: true, sameSite: "lax", secure, path: "/", maxAge: SESSION_SECONDS });
+  return true;
 }
 export async function endSession() {
   const jar = await cookies(); const token = jar.get(COOKIE)?.value;

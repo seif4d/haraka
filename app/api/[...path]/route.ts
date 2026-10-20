@@ -1,4 +1,5 @@
 import {adminStudentDetails} from "@/lib/server/admin-students";
+import {studentAccount} from "@/lib/server/student-account";
 import { createHash, timingSafeEqual, randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
 import { sameOrigin, secureSession } from "@/lib/request-origin";
@@ -57,7 +58,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
         need(row && valid && row.active === 1, "البريد أو كلمة المرور غير صحيحة، أو الحساب موقوف.", 401);
         const user = publicUser(row as unknown as Parameters<typeof publicUser>[0]);
         db().prepare("DELETE FROM auth_attempts WHERE key=?").run(`${path}:${email}`);
-        await createSession(user.id, secureSession(request));
+        need(await createSession(user.id, secureSession(request), {email,passwordHash:String(row.password_hash)}), "بيانات الدخول اتغيرت. حاول تسجيل الدخول من جديد.",401);
         return json({ redirect: homeFor(user.role) });
       }
       if (path === "auth/setup") {
@@ -239,6 +240,8 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
         db().prepare("DELETE FROM content_aliases WHERE entity='lesson' AND canonical_id=?").run(id);audit(user.id, "delete_lesson", id);
       }); return json({ deleted: true });
     }
+    const accountMatch=/^admin\/users\/([^/]+)(?:\/(profile|password|sessions))?$/.exec(path);
+    if(accountMatch&&((!accountMatch[2]&&request.method==='DELETE')||(accountMatch[2]==='profile'&&request.method==='PATCH')||(['password','sessions'].includes(accountMatch[2])&&request.method==='POST')))return json(await studentAccount(user,text(accountMatch[1],1,100,'الحساب'),accountMatch[2]||'delete',data));
     if (/^admin\/users\/[^/]+$/.test(path) && request.method === "GET") return json(adminStudentDetails(text(path.slice("admin/users/".length),1,100,"الحساب")));
     if (path === "admin/users" && request.method === "PATCH") {
       const id = text(data.id, 1, 100, "الحساب"); need(typeof data.active === "boolean", "حالة الحساب غير صالحة.");
