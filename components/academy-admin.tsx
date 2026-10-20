@@ -20,8 +20,8 @@ export default function AcademyAdmin({initial}:{initial:AcademyData}){
  async function action(name:string,payload:Record<string,unknown>){
   if(pending.current)throw new Error('انتظر انتهاء الحفظ الحالي.');pending.current=true;setBusy(true);setError('');setNotice('');
   try{const result=await api<AcademyActionResult>(`academy/admin/${name}`,{...payload,...(course?{courseId:course.id,revision:payload.revision??course.revision}:{})});
-   try{setData(await api<AcademyData>('academy/admin/state',undefined,'GET'));setNotice('اتحفظت التغييرات.');}catch{setNotice('اتحفظت العملية. حدّث الصفحة لتحميل آخر نسخة.');}
-   router.refresh();return result;
+   try{setData(await api<AcademyData>('academy/admin/state',undefined,'GET'));setNotice('اتحفظت التغييرات.');}catch{setNotice('اتحفظت العملية. حدّث الصفحة لتحميل آخر نسخة.');router.refresh();}
+   return result;
   }catch(err){setError(err instanceof Error?err.message:'تعذر الحفظ. حاول مرة أخرى.');throw err;}
   finally{pending.current=false;setBusy(false);}
  }
