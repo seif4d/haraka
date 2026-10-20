@@ -169,6 +169,7 @@ async function layout(page,path,width,name) {
     await require('./check-writing-blocks.cjs')({base,call,admin,student,owner,pupil});
     await require('./check-content-dashboard.cjs')({base,call,admin,student,owner,pupil});
     await require('./check-shared-content.cjs')({base,call,admin,student,second,owner,pupil});
+    await require('./check-academy.cjs')({base,call,admin,student,second,anon,owner,pupil,layout});
     await require('./check-admin-settings.cjs')({base,call,admin,student,anon,owner,pupil,publicPage,password,layout,browser});
     await call(student,'auth/logout',{});await call(student,'student/state',undefined,'GET',401);
     const database=new DatabaseSync(process.env.HARKA_TEST_DATABASE || 'test-results/product-test.sqlite',{readOnly:true});

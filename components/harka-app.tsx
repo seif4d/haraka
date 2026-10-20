@@ -4,6 +4,8 @@ import { StudentLibrary, StudentAssignments, StudentAssignmentDetail, StudentExa
 import StudentExam from "./student-exam";
 import type { Attempt } from "@/lib/academic-domain";
 import BrandLogo from "./brand-logo";
+import AcademyStudent from "./academy-student";
+import type {AcademyData} from "@/lib/academy";
 import CourseHub from "./course-hub";
 import CourseLesson from "./course-lesson";
 import StudentSettings from "./student-settings";
@@ -19,12 +21,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { LibraryBig, ListTodo, ClipboardCheck, CalendarDays, Activity, ArrowLeft, ArrowRight, ArrowUpLeft, Bookmark, BookOpen, Brain, Check, CheckCheck, ChevronLeft, Compass, ExternalLink, FileText, FlaskConical, GraduationCap, Home, Menu, Moon, Play, Search, Settings2, Sparkles, Sun, Target, Trophy, X } from "lucide-react";
 import { Course, Profile, SCIENCE_SOURCE, SCHEDULE_SOURCE, coursesFor, isDemoCourse, profileLabel } from "@/lib/curriculum";
 
-export type StudentView = "home" | "courses" | "saved" | "progress" | "course" | "lesson" | "custom" | "schedule" | "settings" | "library" | "assignments" | "assignment" | "exams" | "exam";
+export type StudentView = "academy" | "home" | "courses" | "saved" | "progress" | "course" | "lesson" | "custom" | "schedule" | "settings" | "library" | "assignments" | "assignment" | "exams" | "exam";
 type View = StudentView;
 type Store = StudentData;
 const NAV = [
   { id: "home" as View, title: "الرئيسية", icon: Home },
   { id: "courses" as View, title: "موادي", icon: BookOpen },
+  { id: "academy" as View, title: "الكورسات", icon: Play },
   { id: "library" as View, title: "المكتبة", icon: LibraryBig },
   { id: "assignments" as View, title: "التكليفات", icon: ListTodo },
   { id: "exams" as View, title: "الاختبارات", icon: ClipboardCheck },
@@ -45,7 +48,7 @@ function arabicSearch(value: string) {
   return value.normalize("NFKD").replace(/[\u064B-\u065F\u0670]/g, "").replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").toLowerCase();
 }
 
-export default function HarkaApp({ initialData, initialView, routeId, initialAttempt, renderedAt }: { initialData: StudentData; initialView: View; routeId: string; initialAttempt?:Attempt; renderedAt:string }) {
+export default function HarkaApp({ initialData, initialView, routeId, initialAttempt, renderedAt, academyData }: { initialData: StudentData; initialView: View; routeId: string; initialAttempt?:Attempt; renderedAt:string;academyData?:AcademyData }) {
   const router = useRouter();
   const [store, setStore] = useState<Store>(initialData);
   const view = initialView;
@@ -90,7 +93,7 @@ export default function HarkaApp({ initialData, initialView, routeId, initialAtt
     toastTimer.current = setTimeout(() => setNotice(""), 4200);
   }
   function go(next: View, id?: string) {
-    const paths: Record<View,string> = {home:"/student",courses:"/student/courses",saved:"/student/saved",progress:"/student/progress",course:`/student/courses/${id || selectedId}`,lesson:`/student/demo/${id || selectedId}`,custom:`/student/lessons/${id || customId}`,settings:"/student/settings",schedule:"/student/schedule",library:"/student/library",assignments:"/student/assignments",assignment:`/student/assignments/${id || routeId}`,exams:"/student/exams",exam:`/student/exams/attempts/${id || routeId}`};
+    const paths: Record<View,string> = {academy:"/student/academy",home:"/student",courses:"/student/courses",saved:"/student/saved",progress:"/student/progress",course:`/student/courses/${id || selectedId}`,lesson:`/student/demo/${id || selectedId}`,custom:`/student/lessons/${id || customId}`,settings:"/student/settings",schedule:"/student/schedule",library:"/student/library",assignments:"/student/assignments",assignment:`/student/assignments/${id || routeId}`,exams:"/student/exams",exam:`/student/exams/attempts/${id || routeId}`};
     setMobileOpen(false); router.push(paths[next]); router.refresh();
   }
   function openCourse(course: Course) { go("course", course.id); }
@@ -132,7 +135,7 @@ export default function HarkaApp({ initialData, initialView, routeId, initialAtt
   const card = (course: Course) => <CourseCard key={course.id} course={course} saved={store.saved.includes(course.id)} lessons={countLessons(course)} complete={store.completed.includes(`torque-${course.id}`)} onOpen={() => openCourse(course)} onSave={() => toggleSave(course.id)} />;
   async function reloadLearning(){const learning=await api<StudentData["learning"]>("student/learning",undefined,"GET");setStore(previous=>({...previous,learning}));router.refresh();}
   const navActive = view === "assignment" ? "assignments" : view === "exam" ? "exams" : view === "course" || view === "lesson" || view === "custom" ? "courses" : view;
-  const pageNames: Record<View, string> = { home: "مساحتك للتعلّم", courses: "المواد الدراسية", saved: "محفوظاتك", progress: "رحلتك في التعلّم", course: "داخل المقرر", lesson: "جرّب وافهم", custom: "داخل الدرس",schedule:"جدول المحاضرات",settings:"إعدادات الحساب",library:"المكتبة",assignments:"التكليفات",assignment:"داخل التكليف",exams:"الاختبارات",exam:"محاولة الاختبار" };
+  const pageNames: Record<View, string> = { academy:"الكورسات",home: "مساحتك للتعلّم", courses: "المواد الدراسية", saved: "محفوظاتك", progress: "رحلتك في التعلّم", course: "داخل المقرر", lesson: "جرّب وافهم", custom: "داخل الدرس",schedule:"جدول المحاضرات",settings:"إعدادات الحساب",library:"المكتبة",assignments:"التكليفات",assignment:"داخل التكليف",exams:"الاختبارات",exam:"محاولة الاختبار" };
 
   return <div className={`harka-shell student-shell${store.dark ? " dark" : ""}`}>
     {mobileOpen && <button className="sidebar-scrim" aria-label="إغلاق القائمة" onClick={() => setMobileOpen(false)} />}
@@ -147,6 +150,7 @@ export default function HarkaApp({ initialData, initialView, routeId, initialAtt
       <header className="topbar"><div className="topbar-start"><button className="icon-button mobile-menu" aria-label="فتح القائمة" onClick={() => setMobileOpen(true)}><Menu /></button><div className="breadcrumb"><span>حركة</span><ChevronLeft size={13} /><strong>{pageNames[view]}</strong></div></div><div className="topbar-end"><span className="topbar-college"><GraduationCap size={16} />علوم الرياضة · أسيوط</span><button className="icon-button" aria-label="البحث في المواد" onClick={() => { go("courses"); setTimeout(() => document.getElementById("course-search")?.focus(), 100); }}><Search size={19} /></button><button className="icon-button theme-button" aria-label={store.dark ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن"} onClick={() => {try {localStorage.setItem("harka-theme",store.dark ? "light" : "dark");} catch {} setStore(previous => ({ ...previous, dark: !previous.dark }));}}>{store.dark ? <Sun size={19} /> : <Moon size={19} />}</button></div></header>
 
       <main className="page-content" id="main-content">
+        {view==="academy" && academyData && <AcademyStudent data={academyData}/>}
         <PlatformNotice text={store.announcement}/>
         {view === "home" && <>
           <section className="welcome-row"><div><p className="eyebrow"><span className="live-dot" />يوم جديد، فكرة جديدة</p><h1>{store.profile.name ? `أهلًا ${store.profile.name.split(" ")[0]}،` : "أهلًا بيك،"} جاهز تتحرّك؟ <span className="wave">↗</span></h1><p className="muted">من أول «ليه؟» لحد «آه فهمت»… دي مساحتك.</p></div><span className="cohort-caption"><span>{profileLabel(store.profile)}</span><span>الترم {store.profile.semester===1 ? "الأول" : "الثاني"}</span></span></section>

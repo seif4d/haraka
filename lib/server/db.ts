@@ -5,6 +5,8 @@ import { dirname, resolve } from "node:path";
 import { syncSharedContent } from "./shared-content";
 import { syncLegacyUnits } from "./course-units";
 
+import { academySchema } from "./academy-schema";
+
 const globalDb = globalThis as unknown as { harkaDb?: DatabaseSync };
 export function db() {
   if (globalDb.harkaDb) return globalDb.harkaDb;
@@ -106,7 +108,7 @@ export function db() {
   CREATE INDEX IF NOT EXISTS units_course ON course_units(course_id,position);`);
   if(!database.prepare("PRAGMA table_info(lessons)").all().some(row=>row.name==="unit_id"))database.exec("ALTER TABLE lessons ADD COLUMN unit_id TEXT NOT NULL DEFAULT ''");
   database.exec('BEGIN IMMEDIATE');
-  try{syncLegacyUnits(database);syncSharedContent(database);database.exec('PRAGMA user_version=8;COMMIT');}catch(error){database.exec('ROLLBACK');database.close();throw error;}
+  try{syncLegacyUnits(database);syncSharedContent(database);academySchema(database);database.exec('PRAGMA user_version=9;COMMIT');}catch(error){database.exec('ROLLBACK');database.close();throw error;}
   globalDb.harkaDb = database;
   return database;
 }
