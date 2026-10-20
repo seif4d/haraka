@@ -1,0 +1,5 @@
+"use client";
+import {useEffect,useId,useRef,type ReactNode} from 'react';
+import {X} from 'lucide-react';
+import s from './admin-library.module.css';
+export default function LibraryDialog({title,busy=false,onClose,children,wide=false}:{title:string;busy?:boolean;onClose:()=>void;children:ReactNode;wide?:boolean}){const ref=useRef<HTMLDialogElement>(null),id=useId();useEffect(()=>{const origin=document.activeElement as HTMLElement|null,overflow=document.body.style.overflow;ref.current?.showModal();document.body.style.overflow='hidden';return()=>{ref.current?.close();document.body.style.overflow=overflow;if(origin?.isConnected)origin.focus();};},[]);return <dialog className={`${s.dialog} ${wide?s.wide:''}`} ref={ref} aria-labelledby={id} onCancel={e=>{e.preventDefault();if(!busy)onClose();}} onClick={e=>{if(e.target===ref.current&&!busy)onClose();}}><header className={s.dialogHeader}><div><span className={s.eyebrow}>مكتبة حركة · مساحة الإدارة</span><h2 id={id}>{title}</h2></div><button type="button" disabled={busy} aria-label="إغلاق نافذة المكتبة" onClick={onClose}><X size={20}/></button></header>{children}</dialog>;}
