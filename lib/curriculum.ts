@@ -167,7 +167,7 @@ export function youtubeId(input: string): string | null {
     if (url.hostname === "youtu.be") id = url.pathname.split("/")[1];
     else if (["youtube.com", "www.youtube.com", "m.youtube.com"].includes(url.hostname)) {
       id = url.searchParams.get("v");
-      if (!id && ["embed", "shorts"].includes(url.pathname.split("/")[1])) id = url.pathname.split("/")[2];
+      if (!id && ["embed", "shorts", "live"].includes(url.pathname.split("/")[1])) id = url.pathname.split("/")[2];
     }
     return id && /^[\w-]{11}$/.test(id) ? id : null;
   } catch { return null; }

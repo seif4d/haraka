@@ -6,3 +6,5 @@
 @media(prefers-reduced-motion:reduce){.courseCard{transition:none}.courseCard:hover{transform:none}}
 
 :global(.dark) .catalogHero h1 em{background:none;color:var(--lime)}
+
+.videoEditor{padding:22px;background:var(--soft);border:1px solid var(--line);border-radius:16px;margin:12px 0 26px}.videoEditor label{display:grid;gap:11px;font-size:.85rem;font-weight:600}.videoEditor input{width:100%;min-width:0;padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);font:inherit}.videoEditor small{display:block;font-size:.74rem;line-height:1.9;color:var(--muted);margin-top:12px}.authorTop>div:last-child{flex-wrap:wrap;justify-content:flex-end}@media(max-width:600px){.authorTop>a{max-width:35%}.authorTop>div:last-child{gap:6px}.authorTop .button{padding:10px 9px;font-size:.7rem}.videoEditor{padding:18px 15px}}
