@@ -161,6 +161,7 @@ async function layout(page,path,width,name) {
     await require('./check-academic.cjs')({base,call,admin,student,second,owner,pupil,profile,courseId:lesson.courseId,layout});
     await require('./check-course.cjs')({base,call,admin,student,second,owner,pupil,layout});
     await require('./check-timetable-import.cjs')({base,call,admin,student,pupil,layout});
+    await require('./check-first-year-schedules.cjs')({base,call,admin,student,pupil,layout});
     await require('./check-interactive-lessons.cjs')({base,call,admin,student,second,owner,pupil,layout});
     await require('./check-training-import.cjs')({base,call,admin,student,second,owner,pupil,layout});
     await require('./check-content-workspace.cjs')({base,call,admin,student,owner,pupil,layout});

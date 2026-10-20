@@ -26,7 +26,7 @@ export function studentData(user: User): StudentData {
   const schedule = listSchedules().find(s=>s.cohortKey===cohortKey(user.profile) && s.status==="published") || null;
   return {
     announcement: settings.announcementEnabled ? settings.announcement : "",
-    learning:studentLearning(user), email:user.email, specializations, schedule:schedule ? {...schedule,entries:schedule.entries.filter(e=>(!e.sportId || specializations[e.courseId]===e.sportId) && !e.excludedSportIds?.includes(specializations[e.courseId]))} : null,
+    learning:studentLearning(user), email:user.email, specializations, schedule:schedule ? {...schedule,classGroupOptions:[...new Set(schedule.entries.flatMap(e=>e.classGroups||[]))].sort((a,b)=>a-b),entries:schedule.entries.filter(e=>(!e.classGroups?.length||!!user.profile.classGroup&&e.classGroups.includes(user.profile.classGroup)) && (!e.sportId || specializations[e.courseId]===e.sportId) && !e.excludedSportIds?.includes(specializations[e.courseId]))} : null,
     lessonVisits:Object.fromEntries(db().prepare("SELECT course_id,lesson_id FROM lesson_visits WHERE user_id=?").all(user.id).filter(row=>courseIds.has(String(row.course_id))).map(row=>[String(row.course_id),contentId(db(),'lesson',String(row.lesson_id))])),
     profile: user.profile, dark: false, lessons: publishedLessons.filter(l=>targetCourse(l.courseId)&&(!l.sportId||specializations[targetCourse(l.courseId)!]===l.sportId)).map(l=>studentLesson({...l,courseId:targetCourse(l.courseId)!})),
     saved: db().prepare("SELECT course_id FROM bookmarks WHERE user_id=?").all(user.id).map(row => String(row.course_id)),

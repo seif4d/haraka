@@ -28,13 +28,15 @@ export function saveSchedule(data:Record<string,unknown>,actorId:string) {
     if(sportId && (!course || !sportsFor(course).some(s=>s.id===sportId))) throw new Error("تخصص المحاضرة غير متاح لهذا المقرر.");
     const excludedSportIds=Array.isArray(e.excludedSportIds)?e.excludedSportIds:[];
     if(excludedSportIds.length>20 || excludedSportIds.some(id=>typeof id!=="string" || !SPORTS.some(s=>s.id===id)) || (excludedSportIds.length && (!course || course.kind!=="elective")))throw new Error("استثناءات التخصص غير صالحة.");
+    const classGroups=e.classGroups===undefined?[]:e.classGroups;
+    if(!Array.isArray(classGroups)||classGroups.length>20||classGroups.some(g=>!Number.isInteger(g)||g<1||g>20)||new Set(classGroups).size!==classGroups.length)throw new Error('أرقام الشعب يجب أن تكون أرقامًا صحيحة من 1 إلى 20 دون تكرار.');
     const timeLabel=typeof e.timeLabel==="string" ? e.timeLabel.trim() : "";
     if(timeLabel.length>80)throw new Error("وصف الوقت أطول من المسموح.");
     const entryNotes=typeof e.notes==="string" ? e.notes.trim() : "";
     if(entryNotes.length>1000)throw new Error("ملاحظة النشاط أطول من المسموح.");
     if(!["lecture","practical"].includes(String(e.kind))) throw new Error("اختر نوع المحاضرة.");
     if(typeof e.location!=="string" || e.location.length>100 || typeof e.instructor!=="string" || e.instructor.length>100) throw new Error("راجع المكان واسم المحاضر.");
-    return {id:randomUUID(),day:e.day,start:e.start,end:e.end,courseId:course?.id || "",sportId,location:e.location.trim(),instructor:e.instructor.trim(),kind:e.kind as ScheduleEntry["kind"],title,notes:entryNotes,timeLabel,excludedSportIds:excludedSportIds as string[]};
+    return {id:randomUUID(),day:e.day,start:e.start,end:e.end,courseId:course?.id || "",sportId,location:e.location.trim(),instructor:e.instructor.trim(),kind:e.kind as ScheduleEntry["kind"],title,notes:entryNotes,timeLabel,excludedSportIds:excludedSportIds as string[],...(classGroups.length?{classGroups:[...classGroups].sort((a,b)=>a-b)}:{})};
   });
   const existing=listSchedules().find(s=>s.cohortKey===key);const id=existing?.id || randomUUID();
   transaction(()=>{

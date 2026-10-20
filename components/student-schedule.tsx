@@ -14,7 +14,8 @@ export const DAYS=["السبت","الأحد","الاثنين","الثلاثاء"
 const SHORT_DAYS=["سبت","أحد","اثنين","ثلاثاء","أربعاء","خميس","جمعة"];
 type Kind="all"|"lecture"|"practical";
 
-export default function StudentSchedule({data,renderedAt}:{data:StudentData;renderedAt:string}) {
+export default function StudentSchedule({data,renderedAt,onGroupChange}:{data:StudentData;renderedAt:string;onGroupChange:(group?:number)=>Promise<boolean>}) {
+  const [savingGroup,setSavingGroup]=useState(false);
   const [now,setNow]=useState(()=>new Date(renderedAt));
   const [selected,setSelected]=useState<number|null>(null);
   const [weekOffset,setWeekOffset]=useState(0);
@@ -63,6 +64,7 @@ export default function StudentSchedule({data,renderedAt}:{data:StudentData;rend
     </header>
 
     {!schedule ? <section className={styles.unpublished}><span className={styles.emptyMark}><CalendarDays size={32}/></span><h2>أسبوعك لسه بيتجهّز.</h2><p>بمجرد نشر جدول مسارك، هتلاقي كل محاضرة وميعادها ومكانها هنا.</p><a className="button outline-button" href={SCHEDULE_SOURCE} target="_blank" rel="noreferrer">جداول الكلية <ExternalLink size={15}/></a></section> : <>
+      {!!schedule.classGroupOptions?.length&&<section className={styles.groupChoice} aria-label="اختيار شعبة العملي"><div><strong>{data.profile.classGroup?`جدول شعبة ${data.profile.classGroup}`:'اختار شعبتك عشان يظهر العملي.'}</strong><p>{data.profile.classGroup?'المواعيد المعروضة تشمل النظري وعملي مجموعتك.':'النظري ظاهر للجميع. رقم شعبتك بيحدد مواعيد العملي.'}</p></div><label>رقم الشعبة<select aria-label="شعبتي في الجدول" value={data.profile.classGroup||''} disabled={savingGroup} onChange={async e=>{setSavingGroup(true);try{await onGroupChange(e.target.value?Number(e.target.value):undefined);}finally{setSavingGroup(false);}}}><option value="">النظري فقط — لم أختر بعد</option>{schedule.classGroupOptions.map(group=><option key={group} value={group}>شعبة {group}</option>)}</select></label></section>}
       <section className={styles.weekPulse} aria-label="ملخص أسبوعك"><div><strong>{entries.length}</strong><span>جلسة في الأسبوع</span></div><div><strong>{entries.filter(e=>e.kind==="practical").length}</strong><span>تطبيق عملي</span></div><div><strong>{studyDays}</strong><span>أيام دراسة</span></div><span className={styles.pulseWord} aria-hidden="true">MAKE YOUR NEXT MOVE ↗</span></section>
       <section className={styles.calendarShell}>
         <div className={styles.calendarTop}><div><p className={styles.miniLabel}>خطّط لخطوتك</p><h2>{month} <span>{dates[day].getUTCFullYear()}</span></h2></div><div className={styles.calendarActions}><button className={styles.weekArrow} aria-label="الأسبوع السابق" onClick={()=>setWeekOffset(value=>value-1)}><ChevronRight size={15}/></button><button className={styles.todayButton} aria-label="العودة إلى اليوم" onClick={()=>{setSelected(null);setWeekOffset(0);setView("day");setQuery("");setKind("all");}}><Sun size={15}/>النهارده</button><button className={styles.weekArrow} aria-label="الأسبوع التالي" onClick={()=>setWeekOffset(value=>value+1)}><ChevronLeft size={15}/></button></div></div>
@@ -87,7 +89,8 @@ export default function StudentSchedule({data,renderedAt}:{data:StudentData;rend
 }
 
 function entryTitle(entry:ScheduleEntry,data:StudentData){const base=catalog.find(c=>c.id===entry.courseId);return entry.title || (base?chosenCourse(base,data.specializations).title:"نشاط دراسي");}
-function GroupNote({entry}:{entry:ScheduleEntry}){if(!entry.notes)return null;return <details className={styles.groupNote}><summary><Info size={13}/>تفاصيل المجموعة<ChevronDown size={13}/></summary><p>{scheduleNote(entry.notes)}</p></details>;}
+function GroupNote({entry}:{entry:ScheduleEntry}){if(!entry.notes&&!entry.classGroups?.length)return null;return <>{!!entry.classGroups?.length&&<p className={styles.classGroupBadge}>الشُعب <bdi>{Math.min(...entry.classGroups)}–{Math.max(...entry.classGroups)}</bdi></p>}{entry.notes&&<details className={styles.groupNote}><summary><Info size={13}/>تفاصيل المجموعة<ChevronDown size={13}/></summary><p>{scheduleNote(entry.notes)}</p></details>}</>;}
+
 function TimelineSession({entry,data,now,index,weekOffset}:{entry:ScheduleEntry;data:StudentData;now:Date;index:number;weekOffset:number}){
   const state=weekOffset===0?sessionState(entry,now):weekOffset<0?"past":"upcoming";const base=catalog.find(c=>c.id===entry.courseId);const label=entryTitle(entry,data);const [time,period]=scheduleTime(entry.start).split(" ");
   return <article className={`${styles.timelineRow} ${entry.kind==="practical"?styles.practical:""} ${state==="live"?styles.live:""} ${state==="past"?styles.past:""}`} data-session-id={entry.id}>
