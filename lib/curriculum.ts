@@ -1,6 +1,6 @@
 export type Track = "general" | "teaching" | "training" | "management";
 export type Gender = "boys" | "girls";
-export type Profile = { name: string; year: number; gender: Gender; track: Track; semester: number };
+export type Profile = { name: string; year: number; gender: Gender; track: Track; semester: number; classGroup?:number };
 export type Course = {
   id: string;
   title: string;
@@ -78,7 +78,7 @@ export function normalizeProfile(value: unknown): Profile {
   const candidate = value as Partial<Profile>;
   const year = [1, 2, 3, 4].includes(Number(candidate.year)) ? Number(candidate.year) : 4;
   const track = year < 3 ? "general" : (["teaching", "training", "management"].includes(candidate.track || "") ? candidate.track as Track : "training");
-  return { name: typeof candidate.name === "string" ? candidate.name.slice(0, 50) : "", year, gender: candidate.gender === "girls" ? "girls" : "boys", track, semester: Number(candidate.semester) === 2 ? 2 : 1 };
+  return { name: typeof candidate.name === "string" ? candidate.name.slice(0, 50) : "", year, gender: candidate.gender === "girls" ? "girls" : "boys", track, semester: Number(candidate.semester) === 2 ? 2 : 1, ...(year===1&&Number(candidate.semester)!==2&&Number.isInteger(candidate.classGroup)&&Number(candidate.classGroup)>=1&&Number(candidate.classGroup)<=20?{classGroup:Number(candidate.classGroup)}:{}) };
 }
 
 export function coursesFor(profile: Profile): Course[] {

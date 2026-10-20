@@ -190,7 +190,7 @@ export default function HarkaApp({ initialData, initialView, routeId, initialAtt
         {view==="exams" && <StudentExams data={store.learning}/>}
         {view==="exam" && initialAttempt && <StudentExam initial={initialAttempt}/>}
         {view==="settings" && <StudentSettings data={store} onSave={updateProfile}/>}
-        {view==="schedule" && <StudentSchedule data={store} renderedAt={renderedAt}/>}
+        {view==="schedule" && <StudentSchedule data={store} renderedAt={renderedAt} onGroupChange={classGroup=>updateProfile({...store.profile,classGroup},Object.fromEntries(specializationSlots(store.profile).filter(c=>store.specializations[c.id]).map(c=>[c.id,store.specializations[c.id]])))}/>}
         <footer className="page-footer"><span>حركة<span className="brand-dot">.</span> <span>افهمها. جرّبها. ثبّتها.</span></span><span>مساحة تعلّم مستقلة · علوم الرياضة، أسيوط</span></footer>
       </main>
       <nav className="mobile-bottom-nav" aria-label="تنقل الموبايل">{MOBILE_NAV.map(item => <button key={item.id} className={navActive === item.id ? "active" : ""} aria-current={navActive===item.id?"page":undefined} onClick={() => go(item.id)}><item.icon size={20} /><span>{item.title}</span></button>)}<button className={!MOBILE_NAV.some(item=>item.id===navActive)?"active":""} aria-expanded={mobileOpen} aria-controls="student-sidebar" onClick={()=>setMobileOpen(true)}><Menu size={20}/><span>المزيد</span></button></nav>
