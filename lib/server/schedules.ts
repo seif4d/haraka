@@ -1,4 +1,5 @@
 import "server-only";
+import {AcademicError} from "./academic";
 import { randomUUID } from "node:crypto";
 import { classGroupCount, coursesFor, normalizeProfile } from "../curriculum";
 import { cohortKey, sportsFor, SPORTS } from "../specializations";
@@ -40,6 +41,7 @@ export function saveSchedule(data:Record<string,unknown>,actorId:string) {
   });
   const existing=listSchedules().find(s=>s.cohortKey===key);const id=existing?.id || randomUUID();
   transaction(()=>{
+    if(data.expectedUpdatedAt!==undefined){const current=db().prepare('SELECT updated_at FROM schedules WHERE cohort_key=?').get(key);if((current?.updated_at??null)!==data.expectedUpdatedAt)throw new AcademicError('الجدول اتغير في نافذة تانية. تعديلاتك محفوظة هنا؛ انسخ اللي محتاجه قبل تحديث الجداول ومراجعة النسخة الأحدث.',409);}
     db().prepare("INSERT INTO schedules(id,cohort_key,academic_year,source_label,source_url,status,entries,updated_at,notes,day_notes) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(cohort_key) DO UPDATE SET academic_year=excluded.academic_year,source_label=excluded.source_label,source_url=excluded.source_url,status=excluded.status,entries=excluded.entries,updated_at=excluded.updated_at,notes=excluded.notes,day_notes=excluded.day_notes").run(id,key,data.academicYear as string,data.sourceLabel as string,sourceUrl,data.status as string,JSON.stringify(entries),new Date().toISOString(),notes,JSON.stringify(dayNotes));
     audit(actorId,"save_schedule",id);
   });

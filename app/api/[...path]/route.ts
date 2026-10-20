@@ -181,7 +181,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ path: s
     }
     if(path === "admin/schedules" && request.method === "POST") {
       try { return json({schedule:saveSchedule(data,user.id)}); }
-      catch(error) {throw new ApiError((error as Error).message);}
+      catch(error) {throw new ApiError((error as Error).message,error instanceof AcademicError?error.status:400);}
     }
     if(path === "admin/lessons/order" && request.method === "PATCH") {
       const courseId=contentCourseId(text(data.courseId,1,200,"المقرر"));const unitId=contentId(db(),'unit',text(data.unitId,0,100,"الوحدة"));
