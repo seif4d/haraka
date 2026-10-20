@@ -13,7 +13,7 @@ const number=(value:number)=>value.toLocaleString('ar-EG');
 function duration(minutes:number){return minutes<60?`${number(minutes)} دقيقة`:`${number(Math.floor(minutes/60))} س${minutes%60?` و ${number(minutes%60)} د`:''}`;}
 function searchText(value:string){return value.normalize('NFKD').replace(/[\u064B-\u065F\u0670]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').toLowerCase().trim();}
 
-export default function AcademyCoursePage({course}:{course:AcademyCourse}){
+export default function AcademyCoursePage({course,preview=false}:{course:AcademyCourse;preview?:boolean}){
   const router=useRouter();
   const start=academyStart(course);
   const percent=academyPercent(course);
@@ -33,12 +33,13 @@ export default function AcademyCoursePage({course}:{course:AcademyCourse}){
   const filtered=units.map(unit=>({...unit,lessons:!normalized||searchText(unit.title).includes(normalized)?unit.lessons:unit.lessons.filter(lesson=>searchText(lesson.title).includes(normalized))})).filter(unit=>unit.lessons.length);
   const matches=filtered.reduce((sum,unit)=>sum+unit.lessons.length,0);
   const allOpen=units.length>0&&units.every(unit=>openUnits.includes(unit.id));
-  const lessonHref=start?`/student/academy/${course.id}/learn/${start.id}`:'';
+  const lessonHref=start?(preview?`/admin/academy/${course.id}/preview/${start.id}`:`/student/academy/${course.id}/learn/${start.id}`):'';
+  const accessible=course.enrolled||preview;
   const canEnroll=course.status==='published'&&course.lessons.length>0;
 
   useEffect(()=>{if(error)errorRef.current?.focus();},[error]);
   async function enroll(){
-    if(pending.current)return;
+    if(pending.current||preview)return;
     pending.current=true;setBusy(true);setError('');
     try{await api('academy/enroll',{courseId:course.id});router.refresh();if(lessonHref)router.push(lessonHref);}
     catch(err){setError(err instanceof Error?err.message:'تعذر التسجيل. حاول مرة أخرى.');}
@@ -46,12 +47,13 @@ export default function AcademyCoursePage({course}:{course:AcademyCourse}){
   }
   function search(value:string){setQuery(value);if(searchText(value))setOpenUnits(units.map(unit=>unit.id));}
   function action(closing=false){
+    if(preview)return start?<Link className={s.primary} href={lessonHref}><Play size={17}/>{closing?'معاينة الدروس':'معاينة أول درس'}<ArrowLeft size={18}/></Link>:<button className={s.primary} disabled>لا يوجد درس منشور للمعاينة</button>;
     if(course.enrolled&&start)return <Link className={s.primary} href={lessonHref}>{percent===100?<CheckCheck size={18}/>:<Play size={17}/>}<span>{closing?(percent===100?'ارجع لمحتوى الكورس':'افتح خطوتك الجاية'):(percent===100?'راجع اللي اتعلمته':'كمّل رحلتك')}</span><ArrowLeft size={18}/></Link>;
     return <button type="button" className={s.primary} disabled={busy||!canEnroll||course.enrolled} onClick={enroll} aria-busy={busy}><span>{busy?'بنجهّز مكانك…':!course.lessons.length?'الدروس بتتجهّز':closing?'سجّل وابدأ التعلّم':'ابدأ الكورس مجانًا'}</span><ArrowLeft size={18}/></button>;
   }
 
   return <div className={s.page}>
-    <div className={s.breadcrumb}><Link href="/student/academy"><ArrowRight size={15}/>كل الكورسات</Link><span>مساحة لخطوتك الجاية</span></div>
+    <div className={s.breadcrumb}><Link href={preview?`/admin/academy/${course.id}`:"/student/academy"}><ArrowRight size={15}/>{preview?"العودة لإدارة الكورس":"كل الكورسات"}</Link><span>{preview?"معاينة للإدارة":"مساحة لخطوتك الجاية"}</span></div>{preview&&<p className={s.previewBanner} role="status">دي معاينة النسخة المحفوظة من صفحة الطالب. الدروس المسودة مخفية، ومش بيتسجّل تقدّم أثناء المعاينة.</p>}
     <header className={s.hero}>
       <div className={s.heroCopy}>
         <div className={s.badges}><span><Sparkles size={13}/>{course.category}</span><span>{course.level}</span>{course.enrolled&&<span className={s.joined}><Check size={13}/>كورساتي</span>}</div>
@@ -94,12 +96,12 @@ export default function AcademyCoursePage({course}:{course:AcademyCourse}){
             return <div className={s.unit} key={unit.id}><h3><button type="button" aria-expanded={expanded} aria-controls={`course-unit-${unit.id}`} onClick={()=>setOpenUnits(previous=>previous.includes(unit.id)?previous.filter(id=>id!==unit.id):[...previous,unit.id])} className={s.unitToggle}><span className={`${s.unitIndex} ${course.enrolled&&unitDone===unit.lessons.length?s.unitFinished:''}`}>{course.enrolled&&unitDone===unit.lessons.length?<Check size={18}/>:String(index+1).padStart(2,'0')}</span><span className={s.unitTitle}>{unit.title}<small>{number(unit.lessons.length)} دروس{course.enrolled?` · ${number(unitDone)} مكتمل`:''}</small></span><ChevronDown size={18}/></button></h3><div id={`course-unit-${unit.id}`} hidden={!expanded} className={s.unitBody}>{unit.lessons.map(lesson=>{
               const isDone=completed.has(lesson.id);
               const isNext=course.enrolled&&start?.id===lesson.id&&percent<100;
-              const content=<><span className={`${s.lessonIcon} ${isDone?s.lessonDone:''}`}>{isDone?<Check size={16}/>:course.enrolled&&lesson.youtubeId?<Play size={14}/>:<BookOpen size={15}/>}</span><span className={s.lessonTitle}>{lesson.title}<small>{lesson.duration?duration(lesson.duration):'على مهلك'}{isDone&&<span>مكتمل</span>}{isNext&&<span className={s.nextTag}>خطوتك الجاية</span>}</small></span>{course.enrolled?<ArrowLeft className={s.lessonArrow} size={17}/>:<LockKeyhole size={14} className={s.lock}/>}</>;
-              return course.enrolled?<Link key={lesson.id} className={`${s.lesson} ${isNext?s.nextLesson:''}`} href={`/student/academy/${course.id}/learn/${lesson.id}`}>{content}</Link>:<div key={lesson.id} className={s.lesson}>{content}</div>;
+              const content=<><span className={`${s.lessonIcon} ${isDone?s.lessonDone:''}`}>{isDone?<Check size={16}/>:accessible&&lesson.youtubeId?<Play size={14}/>:<BookOpen size={15}/>}</span><span className={s.lessonTitle}>{lesson.title}<small>{lesson.duration?duration(lesson.duration):'على مهلك'}{isDone&&<span>مكتمل</span>}{isNext&&<span className={s.nextTag}>خطوتك الجاية</span>}</small></span>{accessible?<ArrowLeft className={s.lessonArrow} size={17}/>:<LockKeyhole size={14} className={s.lock}/>}</>;
+              return accessible?<Link key={lesson.id} className={`${s.lesson} ${isNext?s.nextLesson:''}`} href={preview?`/admin/academy/${course.id}/preview/${lesson.id}`:`/student/academy/${course.id}/learn/${lesson.id}`}>{content}</Link>:<div key={lesson.id} className={s.lesson}>{content}</div>;
             })}</div></div>;
           })}</div>
           {!units.length&&<div className={s.emptyCurriculum}><Layers3 size={26}/><h3>المنهج بيتجهّز.</h3><p>الدروس هتظهر هنا أول ما تكون متاحة.</p></div>}
-          {!course.enrolled&&course.lessons.length>0&&<p className={s.unlockNote}><LockKeyhole size={14}/>سجّل في الكورس عشان تفتح الدروس وتبدأ رحلتك.</p>}
+          {!accessible&&course.lessons.length>0&&<p className={s.unlockNote}><LockKeyhole size={14}/>سجّل في الكورس عشان تفتح الدروس وتبدأ رحلتك.</p>}
         </section>
       </div>
       <aside className={s.aside}>
