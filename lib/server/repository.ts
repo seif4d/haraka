@@ -1,4 +1,5 @@
 import "server-only";
+import {adminOverview} from "./admin-overview";
 import {contentCourseId} from "../content-courses";
 import {contentId} from "./shared-content";
 import { platformSettings } from "./platform-settings";
@@ -35,7 +36,7 @@ export function studentData(user: User): StudentData {
 }
 export function listUsers(): User[] { return db().prepare("SELECT id,email,role,profile,active,created_at FROM users ORDER BY created_at DESC").all().map(row => publicUser(row as unknown as Parameters<typeof publicUser>[0])); }
 export function adminData() {
-  return { units:listCourseUnits(), trainingPlan, settings:platformSettings(), learning:adminLearning(), schedules:listSchedules(), users: listUsers(), lessons: listLessons(), completions: Number(db().prepare("SELECT COUNT(*) AS total FROM progress").get()?.total || 0), audit: db().prepare("SELECT a.action,a.entity_id AS entityId,a.created_at AS createdAt,json_extract(u.profile,'$.name') AS name FROM audit_log a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 15").all().map(row => ({ ...row })) };
+  return { overview:adminOverview(), units:listCourseUnits(), trainingPlan, settings:platformSettings(), learning:adminLearning(), schedules:listSchedules(), users: listUsers(), lessons: listLessons(), completions: Number(db().prepare("SELECT COUNT(*) AS total FROM progress").get()?.total || 0), audit: db().prepare("SELECT a.action,a.entity_id AS entityId,a.created_at AS createdAt,json_extract(u.profile,'$.name') AS name FROM audit_log a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 15").all().map(row => ({ ...row })) };
 }
 
 // Explicit public projection: editorial notes and future internal fields stay on the server.
