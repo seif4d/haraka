@@ -73,12 +73,22 @@ export function profileLabel(profile: Profile) {
   return `الفرقة ${YEARS[profile.year]} · ${profile.gender === "boys" ? "بنين" : "بنات"}${profile.year > 2 ? ` · ${TRACKS[profile.track]}` : ""}`;
 }
 
+export function classGroupCount(profile: Pick<Profile,"year"|"semester"|"gender">) {
+  if(profile.semester!==1)return 0;
+  return profile.year===1?20:profile.year===2?(profile.gender==='girls'?12:9):0;
+}
+export function scheduleGroupRanges(profile: Profile): number[][] {
+  if(!classGroupCount(profile))return [];
+  if(profile.year===1)return [1,6,11,16].map(start=>Array.from({length:5},(_,i)=>start+i));
+  return profile.gender==='boys'?[[1,2],[3,4],[5,6],[7,8,9]]:[[1,2,3],[4,5,6],[7,8,9],[10,11,12],[1,2,3,4,5,6],[7,8,9,10,11,12]];
+}
+
 export function normalizeProfile(value: unknown): Profile {
   if (!value || typeof value !== "object") return DEFAULT_PROFILE;
   const candidate = value as Partial<Profile>;
   const year = [1, 2, 3, 4].includes(Number(candidate.year)) ? Number(candidate.year) : 4;
   const track = year < 3 ? "general" : (["teaching", "training", "management"].includes(candidate.track || "") ? candidate.track as Track : "training");
-  return { name: typeof candidate.name === "string" ? candidate.name.slice(0, 50) : "", year, gender: candidate.gender === "girls" ? "girls" : "boys", track, semester: Number(candidate.semester) === 2 ? 2 : 1, ...(year===1&&Number(candidate.semester)!==2&&Number.isInteger(candidate.classGroup)&&Number(candidate.classGroup)>=1&&Number(candidate.classGroup)<=20?{classGroup:Number(candidate.classGroup)}:{}) };
+  return { name: typeof candidate.name === "string" ? candidate.name.slice(0, 50) : "", year, gender: candidate.gender === "girls" ? "girls" : "boys", track, semester: Number(candidate.semester) === 2 ? 2 : 1, ...(Number(candidate.semester)!==2&&Number.isInteger(candidate.classGroup)&&Number(candidate.classGroup)>=1&&Number(candidate.classGroup)<=classGroupCount({year,semester:1,gender:candidate.gender==="girls"?"girls":"boys"})?{classGroup:Number(candidate.classGroup)}:{}) };
 }
 
 export function coursesFor(profile: Profile): Course[] {

@@ -9,6 +9,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node scripts/run-product-tests.cjs",
     "repo:check": "node scripts/check-repository.cjs",
+    "schedule:import:second-year": "node scripts/import-second-year-schedules.cjs",
     "schedule:import:first-year": "node scripts/import-first-year-schedules.cjs",
     "schedule:import": "node scripts/import-third-year-schedules.cjs",
     "test:container": "node scripts/check-container.cjs",

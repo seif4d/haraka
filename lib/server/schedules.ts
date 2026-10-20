@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { coursesFor, normalizeProfile } from "../curriculum";
+import { classGroupCount, coursesFor, normalizeProfile } from "../curriculum";
 import { cohortKey, sportsFor, SPORTS } from "../specializations";
 import type { ScheduleEntry } from "../domain";
 import { audit, db, transaction } from "./db";
@@ -29,7 +29,7 @@ export function saveSchedule(data:Record<string,unknown>,actorId:string) {
     const excludedSportIds=Array.isArray(e.excludedSportIds)?e.excludedSportIds:[];
     if(excludedSportIds.length>20 || excludedSportIds.some(id=>typeof id!=="string" || !SPORTS.some(s=>s.id===id)) || (excludedSportIds.length && (!course || course.kind!=="elective")))throw new Error("استثناءات التخصص غير صالحة.");
     const classGroups=e.classGroups===undefined?[]:e.classGroups;
-    if(!Array.isArray(classGroups)||classGroups.length>20||classGroups.some(g=>!Number.isInteger(g)||g<1||g>20)||new Set(classGroups).size!==classGroups.length)throw new Error('أرقام الشعب يجب أن تكون أرقامًا صحيحة من 1 إلى 20 دون تكرار.');
+    if(!Array.isArray(classGroups)||classGroups.length>classGroupCount(profile)||classGroups.some(g=>!Number.isInteger(g)||g<1||g>classGroupCount(profile))||new Set(classGroups).size!==classGroups.length)throw new Error('أرقام الشُعب غير متاحة لهذه الفرقة والفئة أو تحتوي على تكرار.');
     const timeLabel=typeof e.timeLabel==="string" ? e.timeLabel.trim() : "";
     if(timeLabel.length>80)throw new Error("وصف الوقت أطول من المسموح.");
     const entryNotes=typeof e.notes==="string" ? e.notes.trim() : "";
