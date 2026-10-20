@@ -1,6 +1,7 @@
 import { Course, Profile, coursesFor } from "./curriculum";
 export type Sport = { id: string; title: string; group: "team" | "individual"; aliases: string[] };
 export const SPORTS: Sport[] = [
+  {id:"karate",title:"الكاراتيه",group:"individual",aliases:["كاراتيه"]},
   {id:"football",title:"كرة القدم",group:"team",aliases:["قدم"]},
   {id:"basketball",title:"كرة السلة",group:"team",aliases:["سلة"]},
   {id:"volleyball",title:"الكرة الطائرة",group:"team",aliases:["طائرة"]},
@@ -21,6 +22,7 @@ export const SPORTS: Sport[] = [
 export type Specializations = Record<string,string>;
 export function sportsFor(course: Course): Sport[] {
   if(course.kind!=="elective") return [];
+  if(course.sportOptions)return SPORTS.filter(s=>course.sportOptions!.includes(s.id));
   const group = course.title.includes("فرد") ? "individual" : "team";
   const choices = SPORTS.filter(s=>s.group===group);
   const named = course.title.includes("/") ? course.title.split("—").pop()!.split("/").map(s=>s.trim()) : [];

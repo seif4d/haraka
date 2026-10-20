@@ -5,6 +5,7 @@ export type Course = {
   id: string;
   title: string;
   kind: "academic" | "practical" | "elective" | "field";
+  sportOptions?: string[];
   sourceYear: string;
   source: "lectures" | "exams";
   description: string;
@@ -143,6 +144,9 @@ export function coursesFor(profile: Profile): Course[] {
     id: `course-${stableId(`${key}-${p.gender}-${entry.title}`)}`,
     title: entry.title,
     kind: entry.kind,
+    ...(p.year===4&&p.semester===1&&entry.kind==='elective'?{sportOptions:entry.title.includes('فرد')?
+      (p.track==='teaching'?['field','track','swimming','gymnastics','karate','defense']:p.track==='management'?(p.gender==='boys'?['gymnastics','swimming','boxing','defense','fencing']:['rhythmic','gymnastics','swimming','fencing','field','track']):['swimming','boxing','track','field','gymnastics','rhythmic','defense','fencing','wrestling','weights','karate']):
+      (p.track==='teaching'?['handball','rackets','volleyball','hockey']:p.track==='management'?(p.gender==='boys'?['football','handball','rackets']:['handball','rackets']):['football','basketball','volleyball','handball','hockey','rackets'])}:{}),
     sourceYear: entry.old ? "2024/2025" : "2025/2026",
     source: p.semester === 1 || entry.old ? "lectures" : "exams",
     description: introductions[entry.title] || (entry.kind === "elective" ? "أنشطة تخصصية حسب اختيار الطالب وتوزيع الكلية." : entry.kind === "field" ? "تطبيق ميداني مرتبط بمسارك الدراسي." : "مقررك ودروسه في مكان واحد. الشرح يظهر هنا بعد نشره من الإدارة."),
